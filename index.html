@@ -70,13 +70,17 @@
           </div>
         </div>
 
-        <div class="level-list" id="levelList" aria-label="Level picker"></div>
+        <div class="wave-preview" id="wavePreview" aria-live="polite"></div>
 
         <div class="tower-list" id="towerList" aria-label="Tower picker"></div>
 
         <div class="selected" id="selectedPanel">
           <h2 id="selectedTitle">เลือกทาวเวอร์</h2>
           <p id="selectedText">แตะทาวเวอร์ด้านบน แล้วกดช่องว่างบนกระดานเพื่อวาง</p>
+          <div class="branch-actions" id="branchActions" hidden>
+            <button id="branchABtn" type="button"></button>
+            <button id="branchBBtn" type="button"></button>
+          </div>
           <div class="selected-actions">
             <button id="upgradeBtn" type="button" disabled>อัปเกรด</button>
             <button id="sellBtn" type="button" disabled>ขาย</button>

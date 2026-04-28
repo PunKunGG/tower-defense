@@ -204,6 +204,13 @@ button:disabled {
   font-weight: 800;
 }
 
+.menu-level .menu-level-stars {
+  color: var(--warning);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
 .menu-start {
   width: 100%;
   border-color: rgba(55, 227, 162, 0.72);
@@ -325,6 +332,8 @@ h1 {
 
 .brand p,
 .selected p,
+.wave-preview p,
+.wave-preview span,
 .log {
   color: var(--muted);
   font-size: 14px;
@@ -338,6 +347,7 @@ h1 {
 }
 
 .stats div,
+.wave-preview,
 .selected,
 .log {
   border: 1px solid rgba(93, 156, 165, 0.24);
@@ -363,52 +373,24 @@ h1 {
   font-size: 24px;
 }
 
-.level-list {
+.wave-preview {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  min-height: 92px;
+  padding: 12px;
 }
 
-.level {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 10px;
-  min-height: 58px;
-  padding: 10px;
-  border: 1px solid rgba(93, 156, 165, 0.24);
-  border-radius: 8px;
-  background: var(--panel);
-  text-align: left;
+.wave-preview h2 {
+  font-size: 17px;
 }
 
-.level[aria-pressed="true"] {
-  border-color: var(--accent-2);
-  background: #142633;
+.wave-preview p {
+  color: var(--text);
+  font-weight: 800;
 }
 
-.level strong,
-.level small {
+.wave-preview span {
   display: block;
-}
-
-.level strong {
-  margin-bottom: 3px;
-  font-size: 14px;
-}
-
-.level small {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-.level em {
-  color: var(--warning);
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 900;
-  text-transform: uppercase;
 }
 
 .tower-list {
@@ -490,10 +472,27 @@ h1 {
   font-size: 18px;
 }
 
+.branch-actions,
 .selected-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.branch-actions[hidden] {
+  display: none;
+}
+
+.branch-actions button {
+  min-height: 52px;
+  padding: 8px;
+  border-color: rgba(70, 167, 255, 0.45);
+  background: #142633;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.selected-actions {
   margin-top: auto;
 }
 
