@@ -9,9 +9,43 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <section class="menu-screen" id="menuScreen" aria-label="Byte Defense menu">
+      <div class="menu-panel">
+        <div class="menu-brand">
+          <div class="menu-mark" aria-hidden="true">
+            <img id="menuLogo" class="menu-logo" src="assets/logo.png" alt="" />
+            <span id="menuLogoFallback">BD</span>
+          </div>
+          <div>
+            <p class="menu-kicker">Tower Defense</p>
+            <h1>Byte Defense</h1>
+          </div>
+        </div>
+
+        <div class="menu-copy">
+          <h2>Select Level</h2>
+          <p id="menuMeta">Training Circuit</p>
+        </div>
+
+        <div class="menu-levels" id="menuLevelList" aria-label="Menu level picker"></div>
+
+        <button class="menu-start" id="menuStartBtn" type="button">Start Game</button>
+      </div>
+    </section>
+
     <main class="shell">
       <section class="playfield" aria-label="Byte Defense game board">
         <canvas id="game" width="1120" height="720" aria-label="Tower defense canvas"></canvas>
+        <div class="hint-panel" id="hintPanel" hidden>
+          <div>
+            <strong id="hintTitle"></strong>
+            <p id="hintText"></p>
+          </div>
+          <div class="hint-actions">
+            <button id="hintCodexBtn" type="button">Codex</button>
+            <button id="hintDismissBtn" type="button">OK</button>
+          </div>
+        </div>
         <div class="toast" id="toast" aria-live="polite"></div>
       </section>
 
@@ -46,13 +80,17 @@
           </div>
         </div>
 
-        <div class="level-list" id="levelList" aria-label="Level picker"></div>
+        <div class="wave-preview" id="wavePreview" aria-live="polite"></div>
 
         <div class="tower-list" id="towerList" aria-label="Tower picker"></div>
 
         <div class="selected" id="selectedPanel">
           <h2 id="selectedTitle">เลือกทาวเวอร์</h2>
           <p id="selectedText">แตะทาวเวอร์ด้านบน แล้วกดช่องว่างบนกระดานเพื่อวาง</p>
+          <div class="branch-actions" id="branchActions" hidden>
+            <button id="branchABtn" type="button"></button>
+            <button id="branchBBtn" type="button"></button>
+          </div>
           <div class="selected-actions">
             <button id="upgradeBtn" type="button" disabled>อัปเกรด</button>
             <button id="sellBtn" type="button" disabled>ขาย</button>
@@ -65,9 +103,60 @@
           <button id="speedBtn" type="button" aria-pressed="false">1x</button>
         </div>
 
+        <button class="codex-open" id="codexBtn" type="button">Codex</button>
+
         <div class="log" id="log" aria-live="polite"></div>
       </aside>
     </main>
+
+    <section class="codex-modal" id="codexModal" hidden aria-label="Game codex">
+      <div class="codex-panel" role="dialog" aria-modal="true" aria-labelledby="codexTitle">
+        <header class="codex-header">
+          <div>
+            <p>Intel Database</p>
+            <h2 id="codexTitle">Codex</h2>
+          </div>
+          <button id="codexCloseBtn" type="button" aria-label="Close codex">Close</button>
+        </header>
+        <div class="codex-tabs" id="codexTabs" role="tablist">
+          <button type="button" data-tab="towers">Towers</button>
+          <button type="button" data-tab="enemies">Enemies</button>
+          <button type="button" data-tab="upgrades">Upgrades</button>
+        </div>
+        <div class="codex-content" id="codexContent"></div>
+      </div>
+    </section>
+
+    <section class="result-modal" id="resultModal" hidden aria-label="Level result">
+      <div class="result-panel" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+        <p id="resultKicker">Level Complete</p>
+        <h2 id="resultTitle">Victory</h2>
+        <div class="result-stars" id="resultStars">☆☆☆</div>
+        <div class="result-grid">
+          <div>
+            <span>Score</span>
+            <strong id="resultScore">0</strong>
+          </div>
+          <div>
+            <span>Best</span>
+            <strong id="resultBest">0</strong>
+          </div>
+          <div>
+            <span>Core</span>
+            <strong id="resultCore">0/0</strong>
+          </div>
+          <div>
+            <span>Wave</span>
+            <strong id="resultWave">0/20</strong>
+          </div>
+        </div>
+        <p class="result-note" id="resultNote"></p>
+        <div class="result-actions">
+          <button id="resultReplayBtn" type="button">Replay</button>
+          <button id="resultMenuBtn" type="button">Level Select</button>
+        </div>
+      </div>
+    </section>
 
     <script src="game.js"></script>
   </body>

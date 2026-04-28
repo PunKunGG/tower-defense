@@ -8,13 +8,43 @@ const ui = {
   lives: document.querySelector("#lives"),
   wave: document.querySelector("#wave"),
   score: document.querySelector("#score"),
+  menuScreen: document.querySelector("#menuScreen"),
+  menuLevelList: document.querySelector("#menuLevelList"),
+  menuStartBtn: document.querySelector("#menuStartBtn"),
+  menuMeta: document.querySelector("#menuMeta"),
+  menuLogo: document.querySelector("#menuLogo"),
+  menuLogoFallback: document.querySelector("#menuLogoFallback"),
   towerList: document.querySelector("#towerList"),
-  levelList: document.querySelector("#levelList"),
+  wavePreview: document.querySelector("#wavePreview"),
+  codexBtn: document.querySelector("#codexBtn"),
+  codexModal: document.querySelector("#codexModal"),
+  codexCloseBtn: document.querySelector("#codexCloseBtn"),
+  codexTabs: document.querySelector("#codexTabs"),
+  codexContent: document.querySelector("#codexContent"),
+  resultModal: document.querySelector("#resultModal"),
+  resultKicker: document.querySelector("#resultKicker"),
+  resultTitle: document.querySelector("#resultTitle"),
+  resultStars: document.querySelector("#resultStars"),
+  resultScore: document.querySelector("#resultScore"),
+  resultBest: document.querySelector("#resultBest"),
+  resultCore: document.querySelector("#resultCore"),
+  resultWave: document.querySelector("#resultWave"),
+  resultNote: document.querySelector("#resultNote"),
+  resultReplayBtn: document.querySelector("#resultReplayBtn"),
+  resultMenuBtn: document.querySelector("#resultMenuBtn"),
+  hintPanel: document.querySelector("#hintPanel"),
+  hintTitle: document.querySelector("#hintTitle"),
+  hintText: document.querySelector("#hintText"),
+  hintCodexBtn: document.querySelector("#hintCodexBtn"),
+  hintDismissBtn: document.querySelector("#hintDismissBtn"),
   brandLogo: document.querySelector("#brandLogo"),
   brandLogoFallback: document.querySelector("#brandLogoFallback"),
   selectedTitle: document.querySelector("#selectedTitle"),
   selectedText: document.querySelector("#selectedText"),
   selectedPanel: document.querySelector("#selectedPanel"),
+  branchActions: document.querySelector("#branchActions"),
+  branchABtn: document.querySelector("#branchABtn"),
+  branchBBtn: document.querySelector("#branchBBtn"),
   upgradeBtn: document.querySelector("#upgradeBtn"),
   sellBtn: document.querySelector("#sellBtn"),
   startWaveBtn: document.querySelector("#startWaveBtn"),
@@ -188,8 +218,39 @@ function cellsToPath(cells) {
   }));
 }
 
+function addPathCell(set, col, row) {
+  if (col < 0 || row < 0 || col >= COLS || row >= ROWS) return;
+  set.add(`${col},${row}`);
+}
+
+function addPathSegmentCells(set, from, to) {
+  const [fromCol, fromRow] = from;
+  const [toCol, toRow] = to;
+  const colDistance = toCol - fromCol;
+  const rowDistance = toRow - fromRow;
+  const steps = Math.max(Math.abs(colDistance), Math.abs(rowDistance), 1);
+
+  for (let step = 0; step <= steps; step += 1) {
+    const progress = step / steps;
+    const col = Math.round(fromCol + colDistance * progress);
+    const row = Math.round(fromRow + rowDistance * progress);
+    addPathCell(set, col, row);
+  }
+}
+
 function buildPathSet(pathGroups) {
-  return new Set(pathGroups.flat().map(([col, row]) => `${col},${row}`));
+  const blockedCells = new Set();
+
+  pathGroups.forEach((cells) => {
+    for (let index = 0; index < cells.length; index += 1) {
+      const current = cells[index];
+      const previous = cells[index - 1];
+      if (previous) addPathSegmentCells(blockedCells, previous, current);
+      else addPathCell(blockedCells, current[0], current[1]);
+    }
+  });
+
+  return blockedCells;
 }
 
 let activeMap = maps[0];
@@ -250,6 +311,57 @@ const towerTypes = {
   },
 };
 
+const towerBranches = {
+  firewall: [
+    {
+      id: "rapid",
+      name: "Rapid Thread",
+      desc: "ยิงถี่ขึ้นมาก เหมาะเก็บศัตรูเร็ว",
+    },
+    {
+      id: "pierce",
+      name: "Pierce Port",
+      desc: "กระสุนทะลุ armor และทำดาเมจเพิ่มกับตัวเกราะ",
+    },
+  ],
+  patch: [
+    {
+      id: "blast",
+      name: "Blast Radius",
+      desc: "รัศมีระเบิดกว้างขึ้นสำหรับ wave หนา",
+    },
+    {
+      id: "payload",
+      name: "Payload Spike",
+      desc: "ดาเมจสูงขึ้น เน้นจัดการตัวถึกและ boss",
+    },
+  ],
+  cryo: [
+    {
+      id: "deepFreeze",
+      name: "Deep Freeze",
+      desc: "slow แรงและนานขึ้นเพื่อซื้อเวลา",
+    },
+    {
+      id: "frostbite",
+      name: "Frostbite",
+      desc: "ติดสถานะกัดเลือดหลังโดนแช่แข็ง",
+    },
+  ],
+  cache: [
+    {
+      id: "interest",
+      name: "Interest Loop",
+      desc: "สร้าง credits มากขึ้นต่อรอบ",
+    },
+    {
+      id: "overclock",
+      name: "Overclock Aura",
+      desc: "เร่ง tower ใกล้ๆ ให้ยิงถี่ขึ้น",
+    },
+  ],
+};
+
 const enemyTypes = {
   bug: {
     name: "Bug",
@@ -275,6 +387,34 @@ const enemyTypes = {
     reward: 8,
     radius: 12,
   },
+  shield: {
+    name: "Shield",
+    color: "#94a3b8",
+    hp: 118,
+    speed: 38,
+    reward: 15,
+    radius: 18,
+    armor: 6,
+  },
+  fork: {
+    name: "Fork Bomb",
+    color: "#fb7185",
+    hp: 68,
+    speed: 55,
+    reward: 13,
+    radius: 15,
+    split: 2,
+    splitType: "bug",
+  },
+  regen: {
+    name: "Regen",
+    color: "#34d399",
+    hp: 95,
+    speed: 45,
+    reward: 16,
+    radius: 16,
+    regen: 5,
+  },
   boss: {
     name: "Kernel Panic",
     color: "#f472b6",
@@ -291,6 +431,7 @@ const state = {
   wave: 0,
   score: 0,
   mapIndex: 0,
+  menuSelectedIndex: 0,
   selectedTowerType: "firewall",
   selectedTower: null,
   towers: [],
@@ -299,11 +440,16 @@ const state = {
   particles: [],
   floaters: [],
   spawns: [],
+  activeHintId: null,
+  activeHintTab: "enemies",
+  codexTab: "towers",
   waveActive: false,
   paused: false,
   speed: 1,
   gameOver: false,
   won: false,
+  menuOpen: true,
+  gameStarted: false,
   lastTime: 0,
   mouse: { x: -1000, y: -1000, col: -1, row: -1 },
   messageTimer: 0,
@@ -311,6 +457,203 @@ const state = {
 
 function formatNumber(value) {
   return Math.floor(value).toLocaleString("en-US");
+}
+
+function bestScoreKey(mapId) {
+  return `byte-defense.best-score.${mapId}`;
+}
+
+function bestStarsKey(mapId) {
+  return `byte-defense.best-stars.${mapId}`;
+}
+
+function hintSeenKey(id) {
+  return `byte-defense.hint.${id}`;
+}
+
+function getBestScore(mapId) {
+  try {
+    return Number(localStorage.getItem(bestScoreKey(mapId))) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function getBestStars(mapId) {
+  try {
+    return Number(localStorage.getItem(bestStarsKey(mapId))) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function hasSeenHint(id) {
+  try {
+    return localStorage.getItem(hintSeenKey(id)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markHintSeen(id) {
+  try {
+    localStorage.setItem(hintSeenKey(id), "1");
+  } catch {
+    // Hints can repeat if localStorage is unavailable.
+  }
+}
+
+function saveBestScore(mapId, score) {
+  const bestScore = getBestScore(mapId);
+  if (score <= bestScore) return;
+
+  try {
+    localStorage.setItem(bestScoreKey(mapId), String(score));
+  } catch {
+    // The game still works if localStorage is unavailable.
+  }
+}
+
+function saveBestStars(mapId, stars) {
+  const bestStars = getBestStars(mapId);
+  if (stars <= bestStars) return;
+
+  try {
+    localStorage.setItem(bestStarsKey(mapId), String(stars));
+  } catch {
+    // The game still works if localStorage is unavailable.
+  }
+}
+
+function calculateStars(won) {
+  if (!won) return 0;
+
+  const coreRatio = state.lives / activeMap.lives;
+  if (coreRatio >= 0.75) return 3;
+  if (coreRatio >= 0.45) return 2;
+  return 1;
+}
+
+function renderStars(count) {
+  return `${"★".repeat(count)}${"☆".repeat(3 - count)}`;
+}
+
+function wireOptionalImage(image, fallback) {
+  const showImage = () => {
+    fallback.hidden = true;
+  };
+  const showFallback = () => {
+    image.remove();
+    fallback.hidden = false;
+  };
+
+  image.addEventListener("load", showImage);
+  image.addEventListener("error", showFallback);
+
+  if (image.complete) {
+    if (image.naturalWidth > 0) showImage();
+    else showFallback();
+  }
+}
+
+function mapMetaText(map) {
+  const lanes = map.pathCells.length === 1 ? "1 lane" : `${map.pathCells.length} lanes`;
+  return `${map.difficulty} / ${lanes} / Core ${map.lives} / Credits ${map.credits}`;
+}
+
+function enemyAbility(typeId, enemy) {
+  if (typeId === "shield") return `Armor ${enemy.armor}: ลดดาเมจที่รับ ยกเว้นกระสุนทะลุ armor`;
+  if (typeId === "fork") return `Split: แตกเป็น ${enemy.split} ${enemyTypes[enemy.splitType].name} เมื่อตาย`;
+  if (typeId === "regen") return `Regen ${enemy.regen}/sec: ฟื้นเลือดระหว่างเดิน`;
+  if (typeId === "boss") return "Boss: หลุดเข้า Core แล้วเสีย core life มากกว่าปกติ";
+  if (typeId === "spark") return "Fast: วิ่งเร็ว เลือดน้อย ต้องมี tower ยิงถี่หรือ slow";
+  if (typeId === "worm") return "Durable: ช้ากว่าแต่เลือดเยอะกว่า Bug";
+  return "Basic: ศัตรูพื้นฐาน ใช้ทดสอบจุดยิงและ economy";
+}
+
+function renderCodex(tab = state.codexTab) {
+  state.codexTab = tab;
+  ui.codexTabs.querySelectorAll("button").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.tab === tab));
+  });
+
+  if (tab === "towers") {
+    ui.codexContent.innerHTML = Object.values(towerTypes)
+      .map((tower) => {
+        const branches = towerBranches[tower.id]
+          .map((branch) => `${branch.name}: ${branch.desc}`)
+          .join(" / ");
+        const details =
+          tower.id === "cache"
+            ? `Cost ${tower.cost} / Economy tower`
+            : `Cost ${tower.cost} / Damage ${tower.damage} / Range ${tower.range}`;
+        return `
+          <article class="codex-card">
+            <h3>${tower.name}</h3>
+            <p>${tower.desc}</p>
+            <span>${details}</span>
+            <small>${branches}</small>
+          </article>
+        `;
+      })
+      .join("");
+    return;
+  }
+
+  if (tab === "enemies") {
+    ui.codexContent.innerHTML = Object.entries(enemyTypes)
+      .map(([typeId, enemy]) => `
+        <article class="codex-card">
+          <h3>${enemy.name}</h3>
+          <p>${enemyAbility(typeId, enemy)}</p>
+          <span>HP ${enemy.hp} / Speed ${enemy.speed} / Reward ${enemy.reward}</span>
+        </article>
+      `)
+      .join("");
+    return;
+  }
+
+  ui.codexContent.innerHTML = Object.entries(towerBranches)
+    .map(([towerId, branches]) => `
+      <article class="codex-card">
+        <h3>${towerTypes[towerId].name} branches</h3>
+        ${branches.map((branch) => `<p><strong>${branch.name}</strong>: ${branch.desc}</p>`).join("")}
+      </article>
+    `)
+    .join("");
+}
+
+function openCodex(tab = state.codexTab) {
+  ui.codexModal.hidden = false;
+  renderCodex(tab);
+}
+
+function closeCodex() {
+  ui.codexModal.hidden = true;
+}
+
+function hideResultModal() {
+  ui.resultModal.hidden = true;
+}
+
+function showResultModal(won, stars) {
+  const bestScore = getBestScore(activeMap.id);
+  const coreLeft = Math.max(0, state.lives);
+  const isNewBest = state.score >= bestScore && state.score > 0;
+
+  ui.resultKicker.textContent = won ? "Level Complete" : "Core Breached";
+  ui.resultTitle.textContent = won ? "Victory" : "Defeat";
+  ui.resultStars.textContent = renderStars(stars);
+  ui.resultScore.textContent = formatNumber(state.score);
+  ui.resultBest.textContent = formatNumber(bestScore);
+  ui.resultCore.textContent = `${formatNumber(coreLeft)}/${formatNumber(activeMap.lives)}`;
+  ui.resultWave.textContent = `${state.wave}/${MAX_WAVES}`;
+  ui.resultNote.textContent = won
+    ? isNewBest
+      ? "New best score!"
+      : "ด่านผ่านแล้ว ลองทำสกอร์ให้สูงกว่าเดิม"
+    : "ลองปรับตำแหน่ง tower และอัปเกรดสายให้เข้ากับศัตรูในด่าน";
+  ui.resultModal.hidden = false;
 }
 
 function showToast(message) {
@@ -321,6 +664,24 @@ function showToast(message) {
 
 function addLog(message) {
   ui.log.textContent = message;
+}
+
+function showHint(id, title, text, tab = "enemies") {
+  if (hasSeenHint(id) || !ui.hintPanel.hidden) return false;
+
+  state.activeHintId = id;
+  state.activeHintTab = tab;
+  ui.hintTitle.textContent = title;
+  ui.hintText.textContent = text;
+  ui.hintPanel.hidden = false;
+  return true;
+}
+
+function dismissHint() {
+  if (state.activeHintId) markHintSeen(state.activeHintId);
+  state.activeHintId = null;
+  state.activeHintTab = "enemies";
+  ui.hintPanel.hidden = true;
 }
 
 function cellCenter(col, row) {
@@ -361,28 +722,47 @@ function applyMap(index) {
   pathSet = buildPathSet(activeMap.pathCells);
 }
 
-function buildLevelCards() {
-  ui.levelList.innerHTML = "";
+function buildMenuLevelCards() {
+  ui.menuLevelList.innerHTML = "";
 
   maps.forEach((map, index) => {
     const button = document.createElement("button");
-    button.className = "level";
+    button.className = "menu-level";
     button.type = "button";
-    button.setAttribute("aria-pressed", String(state.mapIndex === index));
+    button.setAttribute("aria-pressed", String(state.menuSelectedIndex === index));
     button.innerHTML = `
-      <span>
-        <strong>${map.name}</strong>
-        <small>${map.desc}</small>
-      </span>
-      <em>${map.difficulty}</em>
+      <small>${map.difficulty}</small>
+      <strong>${map.name}</strong>
+      <span>${map.desc}</span>
+      <span class="menu-level-stars">${renderStars(getBestStars(map.id))}</span>
+      <span class="menu-level-stats">${mapMetaText(map)} / Best ${formatNumber(getBestScore(map.id))}</span>
     `;
     button.addEventListener("click", () => {
-      if (state.mapIndex === index && !state.gameOver && state.wave === 0) return;
-      applyMap(index);
-      restart(`เลือกด่าน ${map.name}`);
+      selectMenuMap(index);
     });
-    ui.levelList.appendChild(button);
+    ui.menuLevelList.appendChild(button);
   });
+}
+
+function updateMenuMeta() {
+  const selectedMap = maps[state.menuSelectedIndex];
+  ui.menuMeta.textContent = `${selectedMap.name}: ${renderStars(getBestStars(selectedMap.id))} / ${mapMetaText(selectedMap)}`;
+
+  if (!state.gameStarted) {
+    ui.menuStartBtn.textContent = "Start Game";
+  } else if (state.menuSelectedIndex === state.mapIndex && !state.gameOver) {
+    ui.menuStartBtn.textContent = "Resume Game";
+  } else if (state.menuSelectedIndex === state.mapIndex) {
+    ui.menuStartBtn.textContent = "Restart Level";
+  } else {
+    ui.menuStartBtn.textContent = "Start Selected Level";
+  }
+}
+
+function selectMenuMap(index) {
+  state.menuSelectedIndex = index;
+  buildMenuLevelCards();
+  updateMenuMeta();
 }
 
 function buildTowerCards() {
@@ -436,25 +816,121 @@ function updateHud() {
   ui.speedBtn.textContent = `${state.speed}x`;
   ui.speedBtn.setAttribute("aria-pressed", String(state.speed > 1));
   ui.startWaveBtn.textContent = state.gameOver ? "Restart" : "Start Wave";
-  ui.startWaveBtn.disabled = state.waveActive || (!state.gameOver && state.wave >= MAX_WAVES);
+  ui.startWaveBtn.disabled =
+    state.menuOpen || state.waveActive || (!state.gameOver && state.wave >= MAX_WAVES);
+  updateWavePreview();
+}
+
+function getWaveSummary(wave) {
+  const spawns = buildWave(wave);
+  const counts = spawns.reduce((acc, spawn) => {
+    acc[spawn.type] = (acc[spawn.type] || 0) + 1;
+    return acc;
+  }, {});
+  const order = ["bug", "spark", "worm", "shield", "fork", "regen", "boss"];
+  const enemies = order
+    .filter((type) => counts[type])
+    .map((type) => `${enemyTypes[type].name} x${counts[type]}`);
+
+  return {
+    enemies,
+    lanes: paths.length,
+    total: spawns.length,
+  };
+}
+
+function updateWavePreview() {
+  if (state.gameOver) {
+    ui.wavePreview.innerHTML = `
+      <h2>${state.won ? "Level Cleared" : "Core Down"}</h2>
+      <p>${state.won ? `${renderStars(calculateStars(true))} / Score ${formatNumber(state.score)}` : "กด Restart เพื่อลองใหม่"}</p>
+    `;
+    return;
+  }
+
+  if (state.waveActive) {
+    ui.wavePreview.innerHTML = `
+      <h2>Wave ${state.wave} กำลังบุก</h2>
+      <p>เหลือศัตรู ${state.enemies.length + state.spawns.length} ตัว / ${paths.length} lane</p>
+    `;
+    return;
+  }
+
+  const nextWave = state.wave + 1;
+  if (nextWave > MAX_WAVES) {
+    ui.wavePreview.innerHTML = `
+      <h2>Final wave cleared</h2>
+      <p>กด Esc เพื่อกลับเมนูเลือกด่าน</p>
+    `;
+    return;
+  }
+
+  const summary = getWaveSummary(nextWave);
+  ui.wavePreview.innerHTML = `
+    <h2>Next Wave ${nextWave}</h2>
+    <p>${summary.enemies.join(" / ")}</p>
+    <span>${summary.total} enemies / ${summary.lanes} lane${summary.lanes > 1 ? "s" : ""}</span>
+  `;
 }
 
 function towerStats(tower) {
   const type = towerTypes[tower.type];
   const levelScale = 1 + (tower.level - 1) * 0.42;
-  return {
+  const stats = {
     range: type.range + (tower.level - 1) * 13,
     damage: type.damage * levelScale,
     cooldown: Math.max(150, type.cooldown * (1 - (tower.level - 1) * 0.12)),
     splash: type.splash ? type.splash + (tower.level - 1) * 12 : 0,
     slow: type.slow ? Math.max(0.25, type.slow - (tower.level - 1) * 0.06) : 0,
     slowTime: type.slowTime ? type.slowTime + (tower.level - 1) * 260 : 0,
+    bypassArmor: false,
+    dotDamage: 0,
+    auraRange: 0,
   };
+
+  if (tower.branch === "rapid") {
+    stats.cooldown *= 0.62;
+    stats.damage *= 0.92;
+  }
+  if (tower.branch === "pierce") {
+    stats.damage *= 1.35;
+    stats.bypassArmor = true;
+  }
+  if (tower.branch === "blast") {
+    stats.splash *= 1.65;
+    stats.cooldown *= 1.08;
+  }
+  if (tower.branch === "payload") {
+    stats.damage *= 1.7;
+    stats.splash *= 0.82;
+    stats.cooldown *= 1.1;
+  }
+  if (tower.branch === "deepFreeze") {
+    stats.slow = Math.max(0.16, stats.slow - 0.14);
+    stats.slowTime *= 1.7;
+  }
+  if (tower.branch === "frostbite") {
+    stats.dotDamage = 7;
+  }
+  if (tower.branch === "overclock") {
+    stats.auraRange = 150;
+  }
+
+  stats.cooldown = Math.max(110, stats.cooldown);
+  return stats;
 }
 
 function upgradeCost(tower) {
   const base = towerTypes[tower.type].cost;
   return Math.round(base * (0.72 + tower.level * 0.58));
+}
+
+function branchCost(tower) {
+  return upgradeCost(tower);
+}
+
+function getTowerBranch(tower) {
+  return towerBranches[tower.type]?.find((branch) => branch.id === tower.branch);
 }
 
 function sellValue(tower) {
@@ -465,19 +941,38 @@ function updateSelectionPanel() {
   const selected = state.selectedTower;
   ui.upgradeBtn.disabled = true;
   ui.sellBtn.disabled = true;
+  ui.branchActions.hidden = true;
+  ui.branchABtn.disabled = true;
+  ui.branchBBtn.disabled = true;
 
   if (selected) {
     const type = towerTypes[selected.type];
     const stats = towerStats(selected);
-    const upgradeText =
-      selected.level >= 3 ? "เต็มเลเวลแล้ว" : `อัปเกรด ${upgradeCost(selected)} credits`;
+    const branch = getTowerBranch(selected);
+    const upgradeText = selected.level >= 3 ? "เต็มเลเวลแล้ว" : `อัปเกรด ${upgradeCost(selected)} credits`;
+    const branchText = branch ? ` / ${branch.name}` : "";
     ui.selectedTitle.textContent = `${type.name} Lv.${selected.level}`;
-    ui.selectedText.textContent =
-      selected.type === "cache"
-        ? `${upgradeText}. สร้าง credits ทุกไม่กี่วินาที ขายได้ ${sellValue(selected)}.`
-        : `${upgradeText}. Damage ${Math.round(stats.damage)}, Range ${Math.round(stats.range)}, ขายได้ ${sellValue(selected)}.`;
-    ui.upgradeBtn.disabled =
-      selected.level >= 3 || state.credits < upgradeCost(selected) || state.gameOver;
+    ui.selectedText.textContent = selected.type === "cache"
+      ? `${upgradeText}${branchText}. สร้าง credits ทุกไม่กี่วินาที ขายได้ ${sellValue(selected)}.`
+      : `${upgradeText}${branchText}. Damage ${Math.round(stats.damage)}, Range ${Math.round(stats.range)}, ขายได้ ${sellValue(selected)}.`;
+
+    if (selected.level === 2 && !selected.branch) {
+      const branches = towerBranches[selected.type] || [];
+      const cost = branchCost(selected);
+      ui.branchActions.hidden = false;
+      ui.selectedText.textContent = `เลือกสายอัปเกรด ${cost} credits. ${branches[0].name}: ${branches[0].desc} / ${branches[1].name}: ${branches[1].desc}`;
+      showHint("branches", "เลือกสาย Lv.3", "Tower ที่ถึง Lv.2 ต้องเลือกสายก่อนขึ้น Lv.3 แต่ละสายเปลี่ยนบทบาทของ tower ชัดเจน เลือกให้เข้ากับศัตรูในด่าน", "upgrades");
+      ui.branchABtn.textContent = `${branches[0].name} (${cost})`;
+      ui.branchBBtn.textContent = `${branches[1].name} (${cost})`;
+      ui.branchABtn.title = branches[0].desc;
+      ui.branchBBtn.title = branches[1].desc;
+      ui.branchABtn.disabled = state.credits < cost || state.gameOver;
+      ui.branchBBtn.disabled = state.credits < cost || state.gameOver;
+      ui.upgradeBtn.disabled = true;
+    } else {
+      ui.upgradeBtn.disabled =
+        selected.level >= 3 || state.credits < upgradeCost(selected) || state.gameOver;
+    }
     ui.sellBtn.disabled = state.gameOver;
     return;
   }
@@ -495,14 +990,71 @@ function updateSelectionPanel() {
 }
 
 function startWave() {
+  if (state.menuOpen) return;
   if (state.waveActive || state.gameOver || state.wave >= MAX_WAVES) return;
 
   state.wave += 1;
   state.waveActive = true;
   state.spawns = buildWave(state.wave);
+  showWaveHint(state.wave, state.spawns);
   addLog(`Wave ${state.wave} เริ่มแล้ว`);
   showToast(`Wave ${state.wave}`);
   updateHud();
+}
+
+function showWaveHint(wave, spawns) {
+  const types = new Set(spawns.map((spawn) => spawn.type));
+  if (wave === 5 || types.has("boss")) {
+    if (showHint("boss", "Boss wave", "Kernel Panic จะทำ Core เสียหายหนักกว่าศัตรูปกติ ถ้าหลุดเข้าไปควรเตรียม slow หรือ damage หนักไว้ก่อน")) return;
+  }
+  if (types.has("shield")) {
+    if (showHint("shield", "เจอ Shield แล้ว", "Shield มี armor ลดดาเมจ กระสุนสาย Pierce Port ของ Firewall ช่วยทะลุเกราะได้ดี")) return;
+  }
+  if (types.has("fork")) {
+    if (showHint("fork", "Fork Bomb", "Fork Bomb แตกเป็นตัวเล็กเมื่อตาย ระเบิดวงกว้างหรือ tower ยิงถี่จะช่วยเก็บเศษได้ไว")) return;
+  }
+  if (types.has("regen")) {
+    showHint("regen", "Regen process", "Regen ฟื้นเลือดระหว่างเดิน ถ้าปล่อยให้เดินนานเกินไปจะเสีย damage ฟรี ควรใช้ burst หรือ frostbite");
+  }
+}
+
+function showMenu() {
+  if (state.menuOpen) return;
+
+  state.menuOpen = true;
+  state.menuSelectedIndex = state.mapIndex;
+  state.paused = true;
+  hideResultModal();
+  ui.menuScreen.classList.remove("is-hidden");
+  ui.menuScreen.setAttribute("aria-hidden", "false");
+  buildMenuLevelCards();
+  updateMenuMeta();
+  updateHud();
+}
+
+function hideMenu() {
+  state.menuOpen = false;
+  hideResultModal();
+  ui.menuScreen.classList.add("is-hidden");
+  ui.menuScreen.setAttribute("aria-hidden", "true");
+  updateHud();
+}
+
+function enterGame() {
+  const shouldStartLevel =
+    !state.gameStarted || state.gameOver || state.menuSelectedIndex !== state.mapIndex;
+
+  if (shouldStartLevel) {
+    state.mapIndex = state.menuSelectedIndex;
+    state.gameStarted = true;
+    hideMenu();
+    restart(`เข้าสู่ ${maps[state.mapIndex].name}`);
+    showHint("first-run", "เริ่มต้น", "วาง tower ข้างเส้นทางก่อนกด Start Wave แล้วคลิก tower ที่วางเพื่ออัปเกรดหรือขาย", "towers");
+    return;
+  }
+
+  state.paused = false;
+  hideMenu();
 }
 
 function buildWave(wave) {
@@ -517,6 +1069,9 @@ function buildWave(wave) {
     let type = "bug";
     if (wave >= 4 && i % 4 === 0) type = "spark";
     if (wave >= 6 && i % 5 === 2) type = "worm";
+    if (wave >= 8 && i % 7 === 3) type = "shield";
+    if (wave >= 10 && i % 6 === 1) type = "fork";
+    if (wave >= 12 && i % 8 === 5) type = "regen";
     const pathIndex = i % laneCount;
     spawns.push({ at: at + pathIndex * 180, type, hpScale, pathIndex });
     at += gap;
@@ -552,8 +1107,15 @@ function spawnEnemy(spawn) {
     reward: Math.round(template.reward * (1 + state.wave * 0.08) * activeMap.rewardScale),
     radius: template.radius,
     color: template.color,
+    armor: template.armor || 0,
+    regen: template.regen || 0,
+    split: template.split || 0,
+    splitType: template.splitType || null,
+    fromSplit: false,
     slowUntil: 0,
     slowFactor: 1,
+    dotUntil: 0,
+    dotDamage: 0,
   };
   state.enemies.push(enemy);
 }
@@ -587,6 +1149,7 @@ function placeTower(col, row) {
     cooldown: 0,
     lastEarn: 0,
     spent: type.cost,
+    branch: null,
     pulse: 0,
   };
 
@@ -603,6 +1166,11 @@ function upgradeSelected() {
   const tower = state.selectedTower;
   if (!tower || tower.level >= 3) return;
 
+  if (tower.level === 2 && !tower.branch) {
+    showToast("เลือกสายอัปเกรดก่อน");
+    return;
+  }
+
   const cost = upgradeCost(tower);
   if (state.credits < cost) {
     showToast("credits ไม่พอสำหรับอัปเกรด");
@@ -615,6 +1183,30 @@ function upgradeSelected() {
   tower.pulse = 1;
   popParticles(tower.x, tower.y, towerTypes[tower.type].color, 22);
   showToast(`${towerTypes[tower.type].name} Lv.${tower.level}`);
+  updateSelectionPanel();
+  updateHud();
+}
+
+function chooseBranch(branchId) {
+  const tower = state.selectedTower;
+  if (!tower || tower.level !== 2 || tower.branch) return;
+
+  const branch = towerBranches[tower.type]?.find((item) => item.id === branchId);
+  if (!branch) return;
+
+  const cost = branchCost(tower);
+  if (state.credits < cost) {
+    showToast("credits ไม่พอสำหรับเลือกสาย");
+    return;
+  }
+
+  state.credits -= cost;
+  tower.spent += cost;
+  tower.level += 1;
+  tower.branch = branch.id;
+  tower.pulse = 1;
+  popParticles(tower.x, tower.y, towerTypes[tower.type].color, 26);
+  showToast(`${towerTypes[tower.type].name}: ${branch.name}`);
   updateSelectionPanel();
   updateHud();
 }
@@ -701,6 +1293,17 @@ function update(delta, now) {
 function updateEnemies(delta, now) {
   for (let i = state.enemies.length - 1; i >= 0; i -= 1) {
     const enemy = state.enemies[i];
+    if (enemy.regen && enemy.hp > 0 && enemy.hp < enemy.maxHp) {
+      enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.regen * (delta / 1000));
+    }
+    if (enemy.dotUntil > now && enemy.dotDamage) {
+      enemy.hp -= enemy.dotDamage * (delta / 1000);
+      if (enemy.hp <= 0) {
+        damageEnemy(enemy, 0, { bypassArmor: true });
+        continue;
+      }
+    }
+
     const path = paths[enemy.pathIndex];
     const target = path[enemy.segment];
     const dx = target.x - enemy.x;
@@ -743,16 +1346,16 @@ function updateTowers(delta, now) {
     const target = acquireTarget(tower, stats.range);
     if (!target) return;
 
-    tower.cooldown = stats.cooldown;
+    tower.cooldown = stats.cooldown * getCooldownMultiplier(tower);
     fireProjectile(tower, target, stats);
   });
 }
 
 function updateCacheTower(tower, now) {
-  const earnDelay = 6100 - tower.level * 700;
+  const earnDelay = 6100 - tower.level * 700 - (tower.branch === "interest" ? 900 : 0);
   if (!tower.lastEarn) tower.lastEarn = now;
   if (state.waveActive && now - tower.lastEarn >= earnDelay) {
-    const amount = 7 + tower.level * 4;
+    const amount = 7 + tower.level * 4 + (tower.branch === "interest" ? 9 : 0);
     tower.lastEarn = now;
     state.credits += amount;
     state.score += amount;
@@ -766,6 +1369,20 @@ function updateCacheTower(tower, now) {
     });
     updateHud();
   }
+}
+
+function getCooldownMultiplier(tower) {
+  if (tower.type === "cache") return 1;
+
+  let multiplier = 1;
+  state.towers.forEach((otherTower) => {
+    if (otherTower.type !== "cache" || otherTower.branch !== "overclock") return;
+    const stats = towerStats(otherTower);
+    const distance = Math.hypot(otherTower.x - tower.x, otherTower.y - tower.y);
+    if (distance <= stats.auraRange) multiplier = Math.min(multiplier, 0.78);
+  });
+
+  return multiplier;
 }
 
 function acquireTarget(tower, range) {
@@ -797,6 +1414,8 @@ function fireProjectile(tower, target, stats) {
     splash: stats.splash,
     slow: stats.slow,
     slowTime: stats.slowTime,
+    bypassArmor: stats.bypassArmor,
+    dotDamage: stats.dotDamage,
     trail: [],
   });
 }
@@ -839,11 +1458,11 @@ function hitEnemy(projectile, now) {
     [...state.enemies].forEach((enemy) => {
       const distance = Math.hypot(enemy.x - target.x, enemy.y - target.y);
       if (distance <= projectile.splash) {
-        damageEnemy(enemy, projectile.damage * (1 - distance / (projectile.splash * 1.8)));
+        damageEnemy(enemy, projectile.damage * (1 - distance / (projectile.splash * 1.8)), projectile);
       }
     });
   } else {
-    damageEnemy(target, projectile.damage);
+    damageEnemy(target, projectile.damage, projectile);
     popParticles(target.x, target.y, projectile.color, 8);
   }
 
@@ -851,14 +1470,26 @@ function hitEnemy(projectile, now) {
     target.slowUntil = now + projectile.slowTime;
     target.slowFactor = projectile.slow;
   }
+
+  if (projectile.dotDamage && state.enemies.includes(target)) {
+    target.dotUntil = now + 2400;
+    target.dotDamage = Math.max(target.dotDamage || 0, projectile.dotDamage);
+  }
 }
 
-function damageEnemy(enemy, amount) {
-  enemy.hp -= amount;
+function damageEnemy(enemy, amount, projectile = null) {
+  let finalDamage = amount;
+  if (enemy.armor && !projectile?.bypassArmor) {
+    finalDamage = Math.max(1, finalDamage - enemy.armor);
+  }
+
+  enemy.hp -= finalDamage;
   if (enemy.hp > 0) return;
 
   const index = state.enemies.indexOf(enemy);
   if (index !== -1) state.enemies.splice(index, 1);
+
+  spawnSplitEnemies(enemy);
 
   state.credits += enemy.reward;
   state.score += enemy.reward * 10;
@@ -871,6 +1502,41 @@ function damageEnemy(enemy, amount) {
   });
   popParticles(enemy.x, enemy.y, enemy.color, enemy.type === "boss" ? 34 : 14);
   updateHud();
+}
+
+function spawnSplitEnemies(enemy) {
+  if (!enemy.split || enemy.fromSplit) return;
+
+  const template = enemyTypes[enemy.splitType];
+  for (let index = 0; index < enemy.split; index += 1) {
+    const offset = (index - (enemy.split - 1) / 2) * 12;
+    state.enemies.push({
+      type: enemy.splitType,
+      name: template.name,
+      pathIndex: enemy.pathIndex,
+      x: enemy.x - 10,
+      y: enemy.y + offset,
+      segment: enemy.segment,
+      progress: enemy.progress,
+      maxHp: template.hp * 0.62,
+      hp: template.hp * 0.62,
+      speed: template.speed * 1.08,
+      reward: Math.max(2, Math.floor(template.reward * 0.45)),
+      radius: Math.max(8, template.radius - 3),
+      color: template.color,
+      armor: 0,
+      regen: 0,
+      split: 0,
+      splitType: null,
+      fromSplit: true,
+      slowUntil: 0,
+      slowFactor: 1,
+      dotUntil: 0,
+      dotDamage: 0,
+    });
+  }
+
+  popParticles(enemy.x, enemy.y, enemy.color, 18);
 }
 
 function updateParticles(delta) {
@@ -933,16 +1599,27 @@ function checkWaveState() {
 }
 
 function endGame(won) {
+  const stars = calculateStars(won);
   state.gameOver = true;
   state.won = won;
   state.waveActive = false;
   state.spawns = [];
-  addLog(won ? "Core ปลอดภัย คุณชนะแล้ว" : "Core ล่ม ลองวางทาวเวอร์ให้บีบเส้นทางยิงมากขึ้น");
-  showToast(won ? "Victory" : "Game Over");
+  saveBestScore(activeMap.id, state.score);
+  saveBestStars(activeMap.id, stars);
+  state.menuSelectedIndex = state.mapIndex;
+  buildMenuLevelCards();
+  addLog(
+    won
+      ? `Core ปลอดภัย คุณชนะแล้ว ${renderStars(stars)}`
+      : "Core ล่ม ลองวางทาวเวอร์ให้บีบเส้นทางยิงมากขึ้น",
+  );
+  showToast(won ? `Victory ${renderStars(stars)}` : "Game Over");
+  showResultModal(won, stars);
   updateHud();
+  updateMenuMeta();
 }
 
-function restart(message = "เริ่มใหม่แล้ว") {
+function restart(message = "เริ่มใหม่แล้ว", options = {}) {
   applyMap(state.mapIndex);
   state.credits = activeMap.credits;
   state.lives = activeMap.lives;
@@ -961,12 +1638,15 @@ function restart(message = "เริ่มใหม่แล้ว") {
   state.speed = 1;
   state.gameOver = false;
   state.won = false;
-  buildLevelCards();
+  hideResultModal();
+  state.menuSelectedIndex = state.mapIndex;
+  buildMenuLevelCards();
   buildTowerCards();
   updateSelectionPanel();
   updateHud();
+  updateMenuMeta();
   addLog(`${activeMap.name}: ${activeMap.desc}`);
-  showToast(message);
+  if (options.toast ?? true) showToast(message);
 }
 
 function draw() {
@@ -1104,10 +1784,11 @@ function drawTowerRanges() {
   if (!state.selectedTower) return;
   const tower = state.selectedTower;
   const stats = towerStats(tower);
-  if (!stats.range) return;
+  const radius = stats.range || stats.auraRange;
+  if (!radius) return;
   ctx.save();
   ctx.beginPath();
-  ctx.arc(tower.x, tower.y, stats.range, 0, Math.PI * 2);
+  ctx.arc(tower.x, tower.y, radius, 0, Math.PI * 2);
   ctx.fillStyle = hexToRgba(towerTypes[tower.type].color, 0.09);
   ctx.strokeStyle = hexToRgba(towerTypes[tower.type].color, 0.45);
   ctx.lineWidth = 2;
@@ -1171,7 +1852,7 @@ function drawTowers() {
     ctx.fillStyle = "#eef9f7";
     ctx.font = "800 12px system-ui";
     ctx.textAlign = "center";
-    ctx.fillText(`L${tower.level}`, 0, 36);
+    ctx.fillText(`L${tower.level}${tower.branch ? ` ${tower.branch[0].toUpperCase()}` : ""}`, 0, 36);
     ctx.restore();
   });
 }
@@ -1204,6 +1885,42 @@ function drawEnemies() {
       ctx.font = "900 12px system-ui";
       ctx.textAlign = "center";
       ctx.fillText("!", 0, 4);
+    }
+
+    if (enemy.armor) {
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, -enemy.radius + 3);
+      ctx.lineTo(enemy.radius - 6, -4);
+      ctx.lineTo(enemy.radius - 10, enemy.radius - 4);
+      ctx.lineTo(0, enemy.radius - 1);
+      ctx.lineTo(-enemy.radius + 10, enemy.radius - 4);
+      ctx.lineTo(-enemy.radius + 6, -4);
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    if (enemy.split) {
+      ctx.fillStyle = "#fff7ed";
+      ctx.beginPath();
+      ctx.arc(-5, 7, 3, 0, Math.PI * 2);
+      ctx.arc(5, 7, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (enemy.regen) {
+      ctx.fillStyle = "#062016";
+      ctx.fillRect(-2, -10, 4, 20);
+      ctx.fillRect(-10, -2, 20, 4);
+    }
+
+    if (enemy.dotUntil > performance.now()) {
+      ctx.strokeStyle = "#a7f3d0";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, enemy.radius + 12, 0, Math.PI * 2);
+      ctx.stroke();
     }
 
     ctx.fillStyle = "rgba(5, 10, 12, 0.86)";
@@ -1273,7 +1990,7 @@ function drawOverlay() {
   ctx.fillText(title, canvas.width / 2, canvas.height / 2 - 18);
   ctx.font = "800 18px system-ui";
   ctx.fillStyle = "#9db4b2";
-  const subtitle = state.gameOver ? "กด Start Wave เพื่อเริ่มรอบใหม่" : "กด Resume เพื่อเล่นต่อ";
+  const subtitle = state.gameOver ? "เลือก Replay หรือ Level Select" : "กด Resume เพื่อเล่นต่อ";
   ctx.fillText(subtitle, canvas.width / 2, canvas.height / 2 + 28);
   ctx.restore();
 }
@@ -1319,6 +2036,41 @@ canvas.addEventListener("click", handleCanvasClick);
 
 ui.upgradeBtn.addEventListener("click", upgradeSelected);
 ui.sellBtn.addEventListener("click", sellSelected);
+ui.branchABtn.addEventListener("click", () => {
+  const tower = state.selectedTower;
+  if (!tower) return;
+  chooseBranch(towerBranches[tower.type][0].id);
+});
+ui.branchBBtn.addEventListener("click", () => {
+  const tower = state.selectedTower;
+  if (!tower) return;
+  chooseBranch(towerBranches[tower.type][1].id);
+});
+ui.codexBtn.addEventListener("click", () => openCodex("towers"));
+ui.codexCloseBtn.addEventListener("click", closeCodex);
+ui.codexModal.addEventListener("click", (event) => {
+  if (event.target === ui.codexModal) closeCodex();
+});
+ui.codexTabs.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-tab]");
+  if (!button) return;
+  renderCodex(button.dataset.tab);
+});
+ui.resultReplayBtn.addEventListener("click", () => {
+  hideResultModal();
+  restart("เล่นด่านเดิมอีกครั้ง");
+});
+ui.resultMenuBtn.addEventListener("click", () => {
+  hideResultModal();
+  showMenu();
+});
+ui.hintDismissBtn.addEventListener("click", dismissHint);
+ui.hintCodexBtn.addEventListener("click", () => {
+  const tab = state.activeHintTab;
+  dismissHint();
+  openCodex(tab);
+});
+ui.menuStartBtn.addEventListener("click", enterGame);
 ui.startWaveBtn.addEventListener("click", () => {
   if (state.gameOver) {
     restart();
@@ -1337,6 +2089,44 @@ ui.speedBtn.addEventListener("click", () => {
 });
 
 window.addEventListener("keydown", (event) => {
+  if (state.menuOpen) {
+    if (event.key === "Escape" && !ui.codexModal.hidden) {
+      event.preventDefault();
+      closeCodex();
+      return;
+    }
+    if (event.key === "Escape" && state.gameStarted && !state.gameOver) {
+      event.preventDefault();
+      state.menuSelectedIndex = state.mapIndex;
+      state.paused = false;
+      hideMenu();
+      buildMenuLevelCards();
+      updateMenuMeta();
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      enterGame();
+    }
+    if (event.key === " ") event.preventDefault();
+    return;
+  }
+
+  if (event.key === "Escape") {
+    event.preventDefault();
+    if (!ui.resultModal.hidden) {
+      hideResultModal();
+      showMenu();
+      return;
+    }
+    if (!ui.codexModal.hidden) {
+      closeCodex();
+      return;
+    }
+    showMenu();
+    return;
+  }
+
   if (event.key === " ") {
     event.preventDefault();
     if (state.gameOver) restart();
@@ -1362,16 +2152,12 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
-buildLevelCards();
+buildMenuLevelCards();
 buildTowerCards();
 updateSelectionPanel();
 updateHud();
+updateMenuMeta();
 addLog(`${activeMap.name}: ${activeMap.desc}`);
-ui.brandLogo.addEventListener("load", () => {
-  ui.brandLogoFallback.hidden = true;
-});
-ui.brandLogo.addEventListener("error", () => {
-  ui.brandLogo.remove();
-  ui.brandLogoFallback.hidden = false;
-});
+wireOptionalImage(ui.menuLogo, ui.menuLogoFallback);
+wireOptionalImage(ui.brandLogo, ui.brandLogoFallback);
 requestAnimationFrame(gameLoop);

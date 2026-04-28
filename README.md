@@ -16,11 +16,41 @@
 - Cryo: ยิงเบาแต่ทำให้ศัตรูช้าลง
 - Cache: สร้าง credits ระหว่าง wave
 
+เมื่อ tower ถึง Lv.2 จะเลือกสาย Lv.3 ได้ 1 สาย:
+
+- Firewall: Rapid Thread ยิงถี่ขึ้น หรือ Pierce Port ทะลุ armor
+- Patch: Blast Radius ระเบิดกว้างขึ้น หรือ Payload Spike ดาเมจสูงขึ้น
+- Cryo: Deep Freeze slow หนักขึ้น หรือ Frostbite ทำ damage over time
+- Cache: Interest Loop สร้าง credits เพิ่ม หรือ Overclock Aura เร่ง tower ใกล้ๆ
+
+## Enemies
+
+- Bug: ศัตรูพื้นฐาน
+- Spark: เร็ว เลือดน้อย
+- Worm: ช้าแต่ถึกกว่า
+- Shield: มี armor ลดดาเมจที่รับ
+- Fork Bomb: แตกเป็น Bug ตัวเล็กเมื่อถูกทำลาย
+- Regen: ฟื้นเลือดระหว่างเดิน
+- Kernel Panic: boss ทุก 5 waves
+
 ## Levels
+
+หน้าแรกของเกมมีเมนูให้เลือกด่านก่อนเริ่มเล่น และเกมจะจำ best score แยกตามด่านไว้ใน browser
+เมื่อเคลียร์ครบ 20 waves เกมจะให้ดาวตาม Core ที่เหลือ: 1 ดาวเมื่อผ่านด่าน, 2 ดาวเมื่อ Core เหลืออย่างน้อย 45%, และ 3 ดาวเมื่อ Core เหลืออย่างน้อย 75%
 
 - Training Circuit: ด่านง่าย เส้นทางเดียว ยาวกว่า ได้ credits และ core life มากขึ้น
 - Split Circuit: ด่านปกติ มี 2 ทางเข้าแล้วไปรวมกลางแมพ
 - Triport Breach: ด่านยาก มี 3 ทางเข้า ศัตรูหนาและเริ่มต้นด้วยทรัพยากรน้อยกว่า
+
+## Wave preview
+
+แถบด้านขวาจะแสดง wave ถัดไปก่อนกดเริ่ม เช่นชนิดศัตรู จำนวนรวม และจำนวน lane ที่จะเกิดศัตรู เพื่อช่วยวางแผนก่อนใช้ credits
+
+## Codex and hints
+
+- ปุ่ม `Codex` ใน sidebar เปิดข้อมูล tower, enemy, และ upgrade branch
+- Hint จะโผล่ครั้งแรกเมื่อผู้เล่นเจอระบบสำคัญ เช่น boss, Shield, Fork Bomb, Regen หรือการเลือกสาย Lv.3
+- Hint ที่กด `OK` แล้วจะไม่โผล่ซ้ำใน browser เดิม
 
 ## Custom icons
 
@@ -40,3 +70,4 @@
 - `1` ถึง `4`: เลือก tower
 - `Space`: เริ่ม wave
 - `P`: pause/resume
+- `Esc`: เปิดเมนูหยุดเกมเพื่อ resume หรือเลือกด่านใหม่
