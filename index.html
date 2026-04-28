@@ -36,6 +36,16 @@
     <main class="shell">
       <section class="playfield" aria-label="Byte Defense game board">
         <canvas id="game" width="1120" height="720" aria-label="Tower defense canvas"></canvas>
+        <div class="hint-panel" id="hintPanel" hidden>
+          <div>
+            <strong id="hintTitle"></strong>
+            <p id="hintText"></p>
+          </div>
+          <div class="hint-actions">
+            <button id="hintCodexBtn" type="button">Codex</button>
+            <button id="hintDismissBtn" type="button">OK</button>
+          </div>
+        </div>
         <div class="toast" id="toast" aria-live="polite"></div>
       </section>
 
@@ -93,9 +103,60 @@
           <button id="speedBtn" type="button" aria-pressed="false">1x</button>
         </div>
 
+        <button class="codex-open" id="codexBtn" type="button">Codex</button>
+
         <div class="log" id="log" aria-live="polite"></div>
       </aside>
     </main>
+
+    <section class="codex-modal" id="codexModal" hidden aria-label="Game codex">
+      <div class="codex-panel" role="dialog" aria-modal="true" aria-labelledby="codexTitle">
+        <header class="codex-header">
+          <div>
+            <p>Intel Database</p>
+            <h2 id="codexTitle">Codex</h2>
+          </div>
+          <button id="codexCloseBtn" type="button" aria-label="Close codex">Close</button>
+        </header>
+        <div class="codex-tabs" id="codexTabs" role="tablist">
+          <button type="button" data-tab="towers">Towers</button>
+          <button type="button" data-tab="enemies">Enemies</button>
+          <button type="button" data-tab="upgrades">Upgrades</button>
+        </div>
+        <div class="codex-content" id="codexContent"></div>
+      </div>
+    </section>
+
+    <section class="result-modal" id="resultModal" hidden aria-label="Level result">
+      <div class="result-panel" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+        <p id="resultKicker">Level Complete</p>
+        <h2 id="resultTitle">Victory</h2>
+        <div class="result-stars" id="resultStars">☆☆☆</div>
+        <div class="result-grid">
+          <div>
+            <span>Score</span>
+            <strong id="resultScore">0</strong>
+          </div>
+          <div>
+            <span>Best</span>
+            <strong id="resultBest">0</strong>
+          </div>
+          <div>
+            <span>Core</span>
+            <strong id="resultCore">0/0</strong>
+          </div>
+          <div>
+            <span>Wave</span>
+            <strong id="resultWave">0/20</strong>
+          </div>
+        </div>
+        <p class="result-note" id="resultNote"></p>
+        <div class="result-actions">
+          <button id="resultReplayBtn" type="button">Replay</button>
+          <button id="resultMenuBtn" type="button">Level Select</button>
+        </div>
+      </div>
+    </section>
 
     <script src="game.js"></script>
   </body>

@@ -16,6 +16,27 @@ const ui = {
   menuLogoFallback: document.querySelector("#menuLogoFallback"),
   towerList: document.querySelector("#towerList"),
   wavePreview: document.querySelector("#wavePreview"),
+  codexBtn: document.querySelector("#codexBtn"),
+  codexModal: document.querySelector("#codexModal"),
+  codexCloseBtn: document.querySelector("#codexCloseBtn"),
+  codexTabs: document.querySelector("#codexTabs"),
+  codexContent: document.querySelector("#codexContent"),
+  resultModal: document.querySelector("#resultModal"),
+  resultKicker: document.querySelector("#resultKicker"),
+  resultTitle: document.querySelector("#resultTitle"),
+  resultStars: document.querySelector("#resultStars"),
+  resultScore: document.querySelector("#resultScore"),
+  resultBest: document.querySelector("#resultBest"),
+  resultCore: document.querySelector("#resultCore"),
+  resultWave: document.querySelector("#resultWave"),
+  resultNote: document.querySelector("#resultNote"),
+  resultReplayBtn: document.querySelector("#resultReplayBtn"),
+  resultMenuBtn: document.querySelector("#resultMenuBtn"),
+  hintPanel: document.querySelector("#hintPanel"),
+  hintTitle: document.querySelector("#hintTitle"),
+  hintText: document.querySelector("#hintText"),
+  hintCodexBtn: document.querySelector("#hintCodexBtn"),
+  hintDismissBtn: document.querySelector("#hintDismissBtn"),
   brandLogo: document.querySelector("#brandLogo"),
   brandLogoFallback: document.querySelector("#brandLogoFallback"),
   selectedTitle: document.querySelector("#selectedTitle"),
@@ -419,6 +440,9 @@ const state = {
   particles: [],
   floaters: [],
   spawns: [],
+  activeHintId: null,
+  activeHintTab: "enemies",
+  codexTab: "towers",
   waveActive: false,
   paused: false,
   speed: 1,
@@ -443,6 +467,10 @@ function bestStarsKey(mapId) {
   return `byte-defense.best-stars.${mapId}`;
 }
 
+function hintSeenKey(id) {
+  return `byte-defense.hint.${id}`;
+}
+
 function getBestScore(mapId) {
   try {
     return Number(localStorage.getItem(bestScoreKey(mapId))) || 0;
@@ -456,6 +484,22 @@ function getBestStars(mapId) {
     return Number(localStorage.getItem(bestStarsKey(mapId))) || 0;
   } catch {
     return 0;
+  }
+}
+
+function hasSeenHint(id) {
+  try {
+    return localStorage.getItem(hintSeenKey(id)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markHintSeen(id) {
+  try {
+    localStorage.setItem(hintSeenKey(id), "1");
+  } catch {
+    // Hints can repeat if localStorage is unavailable.
   }
 }
 
@@ -517,6 +561,101 @@ function mapMetaText(map) {
   return `${map.difficulty} / ${lanes} / Core ${map.lives} / Credits ${map.credits}`;
 }
 
+function enemyAbility(typeId, enemy) {
+  if (typeId === "shield") return `Armor ${enemy.armor}: ลดดาเมจที่รับ ยกเว้นกระสุนทะลุ armor`;
+  if (typeId === "fork") return `Split: แตกเป็น ${enemy.split} ${enemyTypes[enemy.splitType].name} เมื่อตาย`;
+  if (typeId === "regen") return `Regen ${enemy.regen}/sec: ฟื้นเลือดระหว่างเดิน`;
+  if (typeId === "boss") return "Boss: หลุดเข้า Core แล้วเสีย core life มากกว่าปกติ";
+  if (typeId === "spark") return "Fast: วิ่งเร็ว เลือดน้อย ต้องมี tower ยิงถี่หรือ slow";
+  if (typeId === "worm") return "Durable: ช้ากว่าแต่เลือดเยอะกว่า Bug";
+  return "Basic: ศัตรูพื้นฐาน ใช้ทดสอบจุดยิงและ economy";
+}
+
+function renderCodex(tab = state.codexTab) {
+  state.codexTab = tab;
+  ui.codexTabs.querySelectorAll("button").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.tab === tab));
+  });
+
+  if (tab === "towers") {
+    ui.codexContent.innerHTML = Object.values(towerTypes)
+      .map((tower) => {
+        const branches = towerBranches[tower.id]
+          .map((branch) => `${branch.name}: ${branch.desc}`)
+          .join(" / ");
+        const details =
+          tower.id === "cache"
+            ? `Cost ${tower.cost} / Economy tower`
+            : `Cost ${tower.cost} / Damage ${tower.damage} / Range ${tower.range}`;
+        return `
+          <article class="codex-card">
+            <h3>${tower.name}</h3>
+            <p>${tower.desc}</p>
+            <span>${details}</span>
+            <small>${branches}</small>
+          </article>
+        `;
+      })
+      .join("");
+    return;
+  }
+
+  if (tab === "enemies") {
+    ui.codexContent.innerHTML = Object.entries(enemyTypes)
+      .map(([typeId, enemy]) => `
+        <article class="codex-card">
+          <h3>${enemy.name}</h3>
+          <p>${enemyAbility(typeId, enemy)}</p>
+          <span>HP ${enemy.hp} / Speed ${enemy.speed} / Reward ${enemy.reward}</span>
+        </article>
+      `)
+      .join("");
+    return;
+  }
+
+  ui.codexContent.innerHTML = Object.entries(towerBranches)
+    .map(([towerId, branches]) => `
+      <article class="codex-card">
+        <h3>${towerTypes[towerId].name} branches</h3>
+        ${branches.map((branch) => `<p><strong>${branch.name}</strong>: ${branch.desc}</p>`).join("")}
+      </article>
+    `)
+    .join("");
+}
+
+function openCodex(tab = state.codexTab) {
+  ui.codexModal.hidden = false;
+  renderCodex(tab);
+}
+
+function closeCodex() {
+  ui.codexModal.hidden = true;
+}
+
+function hideResultModal() {
+  ui.resultModal.hidden = true;
+}
+
+function showResultModal(won, stars) {
+  const bestScore = getBestScore(activeMap.id);
+  const coreLeft = Math.max(0, state.lives);
+  const isNewBest = state.score >= bestScore && state.score > 0;
+
+  ui.resultKicker.textContent = won ? "Level Complete" : "Core Breached";
+  ui.resultTitle.textContent = won ? "Victory" : "Defeat";
+  ui.resultStars.textContent = renderStars(stars);
+  ui.resultScore.textContent = formatNumber(state.score);
+  ui.resultBest.textContent = formatNumber(bestScore);
+  ui.resultCore.textContent = `${formatNumber(coreLeft)}/${formatNumber(activeMap.lives)}`;
+  ui.resultWave.textContent = `${state.wave}/${MAX_WAVES}`;
+  ui.resultNote.textContent = won
+    ? isNewBest
+      ? "New best score!"
+      : "ด่านผ่านแล้ว ลองทำสกอร์ให้สูงกว่าเดิม"
+    : "ลองปรับตำแหน่ง tower และอัปเกรดสายให้เข้ากับศัตรูในด่าน";
+  ui.resultModal.hidden = false;
+}
+
 function showToast(message) {
   ui.toast.textContent = message;
   ui.toast.classList.add("show");
@@ -525,6 +664,24 @@ function showToast(message) {
 
 function addLog(message) {
   ui.log.textContent = message;
+}
+
+function showHint(id, title, text, tab = "enemies") {
+  if (hasSeenHint(id) || !ui.hintPanel.hidden) return false;
+
+  state.activeHintId = id;
+  state.activeHintTab = tab;
+  ui.hintTitle.textContent = title;
+  ui.hintText.textContent = text;
+  ui.hintPanel.hidden = false;
+  return true;
+}
+
+function dismissHint() {
+  if (state.activeHintId) markHintSeen(state.activeHintId);
+  state.activeHintId = null;
+  state.activeHintTab = "enemies";
+  ui.hintPanel.hidden = true;
 }
 
 function cellCenter(col, row) {
@@ -804,6 +961,7 @@ function updateSelectionPanel() {
       const cost = branchCost(selected);
       ui.branchActions.hidden = false;
       ui.selectedText.textContent = `เลือกสายอัปเกรด ${cost} credits. ${branches[0].name}: ${branches[0].desc} / ${branches[1].name}: ${branches[1].desc}`;
+      showHint("branches", "เลือกสาย Lv.3", "Tower ที่ถึง Lv.2 ต้องเลือกสายก่อนขึ้น Lv.3 แต่ละสายเปลี่ยนบทบาทของ tower ชัดเจน เลือกให้เข้ากับศัตรูในด่าน", "upgrades");
       ui.branchABtn.textContent = `${branches[0].name} (${cost})`;
       ui.branchBBtn.textContent = `${branches[1].name} (${cost})`;
       ui.branchABtn.title = branches[0].desc;
@@ -838,9 +996,26 @@ function startWave() {
   state.wave += 1;
   state.waveActive = true;
   state.spawns = buildWave(state.wave);
+  showWaveHint(state.wave, state.spawns);
   addLog(`Wave ${state.wave} เริ่มแล้ว`);
   showToast(`Wave ${state.wave}`);
   updateHud();
+}
+
+function showWaveHint(wave, spawns) {
+  const types = new Set(spawns.map((spawn) => spawn.type));
+  if (wave === 5 || types.has("boss")) {
+    if (showHint("boss", "Boss wave", "Kernel Panic จะทำ Core เสียหายหนักกว่าศัตรูปกติ ถ้าหลุดเข้าไปควรเตรียม slow หรือ damage หนักไว้ก่อน")) return;
+  }
+  if (types.has("shield")) {
+    if (showHint("shield", "เจอ Shield แล้ว", "Shield มี armor ลดดาเมจ กระสุนสาย Pierce Port ของ Firewall ช่วยทะลุเกราะได้ดี")) return;
+  }
+  if (types.has("fork")) {
+    if (showHint("fork", "Fork Bomb", "Fork Bomb แตกเป็นตัวเล็กเมื่อตาย ระเบิดวงกว้างหรือ tower ยิงถี่จะช่วยเก็บเศษได้ไว")) return;
+  }
+  if (types.has("regen")) {
+    showHint("regen", "Regen process", "Regen ฟื้นเลือดระหว่างเดิน ถ้าปล่อยให้เดินนานเกินไปจะเสีย damage ฟรี ควรใช้ burst หรือ frostbite");
+  }
 }
 
 function showMenu() {
@@ -849,6 +1024,7 @@ function showMenu() {
   state.menuOpen = true;
   state.menuSelectedIndex = state.mapIndex;
   state.paused = true;
+  hideResultModal();
   ui.menuScreen.classList.remove("is-hidden");
   ui.menuScreen.setAttribute("aria-hidden", "false");
   buildMenuLevelCards();
@@ -858,6 +1034,7 @@ function showMenu() {
 
 function hideMenu() {
   state.menuOpen = false;
+  hideResultModal();
   ui.menuScreen.classList.add("is-hidden");
   ui.menuScreen.setAttribute("aria-hidden", "true");
   updateHud();
@@ -872,6 +1049,7 @@ function enterGame() {
     state.gameStarted = true;
     hideMenu();
     restart(`เข้าสู่ ${maps[state.mapIndex].name}`);
+    showHint("first-run", "เริ่มต้น", "วาง tower ข้างเส้นทางก่อนกด Start Wave แล้วคลิก tower ที่วางเพื่ออัปเกรดหรือขาย", "towers");
     return;
   }
 
@@ -1436,6 +1614,7 @@ function endGame(won) {
       : "Core ล่ม ลองวางทาวเวอร์ให้บีบเส้นทางยิงมากขึ้น",
   );
   showToast(won ? `Victory ${renderStars(stars)}` : "Game Over");
+  showResultModal(won, stars);
   updateHud();
   updateMenuMeta();
 }
@@ -1459,6 +1638,7 @@ function restart(message = "เริ่มใหม่แล้ว", options = 
   state.speed = 1;
   state.gameOver = false;
   state.won = false;
+  hideResultModal();
   state.menuSelectedIndex = state.mapIndex;
   buildMenuLevelCards();
   buildTowerCards();
@@ -1810,7 +1990,7 @@ function drawOverlay() {
   ctx.fillText(title, canvas.width / 2, canvas.height / 2 - 18);
   ctx.font = "800 18px system-ui";
   ctx.fillStyle = "#9db4b2";
-  const subtitle = state.gameOver ? "กด Start Wave เพื่อเริ่มรอบใหม่" : "กด Resume เพื่อเล่นต่อ";
+  const subtitle = state.gameOver ? "เลือก Replay หรือ Level Select" : "กด Resume เพื่อเล่นต่อ";
   ctx.fillText(subtitle, canvas.width / 2, canvas.height / 2 + 28);
   ctx.restore();
 }
@@ -1866,6 +2046,30 @@ ui.branchBBtn.addEventListener("click", () => {
   if (!tower) return;
   chooseBranch(towerBranches[tower.type][1].id);
 });
+ui.codexBtn.addEventListener("click", () => openCodex("towers"));
+ui.codexCloseBtn.addEventListener("click", closeCodex);
+ui.codexModal.addEventListener("click", (event) => {
+  if (event.target === ui.codexModal) closeCodex();
+});
+ui.codexTabs.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-tab]");
+  if (!button) return;
+  renderCodex(button.dataset.tab);
+});
+ui.resultReplayBtn.addEventListener("click", () => {
+  hideResultModal();
+  restart("เล่นด่านเดิมอีกครั้ง");
+});
+ui.resultMenuBtn.addEventListener("click", () => {
+  hideResultModal();
+  showMenu();
+});
+ui.hintDismissBtn.addEventListener("click", dismissHint);
+ui.hintCodexBtn.addEventListener("click", () => {
+  const tab = state.activeHintTab;
+  dismissHint();
+  openCodex(tab);
+});
 ui.menuStartBtn.addEventListener("click", enterGame);
 ui.startWaveBtn.addEventListener("click", () => {
   if (state.gameOver) {
@@ -1886,6 +2090,11 @@ ui.speedBtn.addEventListener("click", () => {
 
 window.addEventListener("keydown", (event) => {
   if (state.menuOpen) {
+    if (event.key === "Escape" && !ui.codexModal.hidden) {
+      event.preventDefault();
+      closeCodex();
+      return;
+    }
     if (event.key === "Escape" && state.gameStarted && !state.gameOver) {
       event.preventDefault();
       state.menuSelectedIndex = state.mapIndex;
@@ -1905,6 +2114,15 @@ window.addEventListener("keydown", (event) => {
 
   if (event.key === "Escape") {
     event.preventDefault();
+    if (!ui.resultModal.hidden) {
+      hideResultModal();
+      showMenu();
+      return;
+    }
+    if (!ui.codexModal.hidden) {
+      closeCodex();
+      return;
+    }
     showMenu();
     return;
   }

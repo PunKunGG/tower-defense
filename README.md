@@ -46,6 +46,12 @@
 
 แถบด้านขวาจะแสดง wave ถัดไปก่อนกดเริ่ม เช่นชนิดศัตรู จำนวนรวม และจำนวน lane ที่จะเกิดศัตรู เพื่อช่วยวางแผนก่อนใช้ credits
 
+## Codex and hints
+
+- ปุ่ม `Codex` ใน sidebar เปิดข้อมูล tower, enemy, และ upgrade branch
+- Hint จะโผล่ครั้งแรกเมื่อผู้เล่นเจอระบบสำคัญ เช่น boss, Shield, Fork Bomb, Regen หรือการเลือกสาย Lv.3
+- Hint ที่กด `OK` แล้วจะไม่โผล่ซ้ำใน browser เดิม
+
 ## Custom icons
 
 วางรูป tower picker ไว้ที่ `assets/towers` ตามชื่อนี้:
