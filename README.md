@@ -16,6 +16,12 @@
 - Cryo: ยิงเบาแต่ทำให้ศัตรูช้าลง
 - Cache: สร้าง credits ระหว่าง wave
 
+## Levels
+
+- Training Circuit: ด่านง่าย เส้นทางเดียว ยาวกว่า ได้ credits และ core life มากขึ้น
+- Split Circuit: ด่านปกติ มี 2 ทางเข้าแล้วไปรวมกลางแมพ
+- Triport Breach: ด่านยาก มี 3 ทางเข้า ศัตรูหนาและเริ่มต้นด้วยทรัพยากรน้อยกว่า
+
 ## Custom icons
 
 วางรูป tower picker ไว้ที่ `assets/towers` ตามชื่อนี้:
