@@ -9,6 +9,30 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <section class="menu-screen" id="menuScreen" aria-label="Byte Defense menu">
+      <div class="menu-panel">
+        <div class="menu-brand">
+          <div class="menu-mark" aria-hidden="true">
+            <img id="menuLogo" class="menu-logo" src="assets/logo.png" alt="" />
+            <span id="menuLogoFallback">BD</span>
+          </div>
+          <div>
+            <p class="menu-kicker">Tower Defense</p>
+            <h1>Byte Defense</h1>
+          </div>
+        </div>
+
+        <div class="menu-copy">
+          <h2>Select Level</h2>
+          <p id="menuMeta">Training Circuit</p>
+        </div>
+
+        <div class="menu-levels" id="menuLevelList" aria-label="Menu level picker"></div>
+
+        <button class="menu-start" id="menuStartBtn" type="button">Start Game</button>
+      </div>
+    </section>
+
     <main class="shell">
       <section class="playfield" aria-label="Byte Defense game board">
         <canvas id="game" width="1120" height="720" aria-label="Tower defense canvas"></canvas>

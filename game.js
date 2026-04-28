@@ -8,6 +8,12 @@ const ui = {
   lives: document.querySelector("#lives"),
   wave: document.querySelector("#wave"),
   score: document.querySelector("#score"),
+  menuScreen: document.querySelector("#menuScreen"),
+  menuLevelList: document.querySelector("#menuLevelList"),
+  menuStartBtn: document.querySelector("#menuStartBtn"),
+  menuMeta: document.querySelector("#menuMeta"),
+  menuLogo: document.querySelector("#menuLogo"),
+  menuLogoFallback: document.querySelector("#menuLogoFallback"),
   towerList: document.querySelector("#towerList"),
   levelList: document.querySelector("#levelList"),
   brandLogo: document.querySelector("#brandLogo"),
@@ -304,6 +310,7 @@ const state = {
   speed: 1,
   gameOver: false,
   won: false,
+  menuOpen: true,
   lastTime: 0,
   mouse: { x: -1000, y: -1000, col: -1, row: -1 },
   messageTimer: 0,
@@ -311,6 +318,52 @@ const state = {
 
 function formatNumber(value) {
   return Math.floor(value).toLocaleString("en-US");
+}
+
+function bestScoreKey(mapId) {
+  return `byte-defense.best-score.${mapId}`;
+}
+
+function getBestScore(mapId) {
+  try {
+    return Number(localStorage.getItem(bestScoreKey(mapId))) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function saveBestScore(mapId, score) {
+  const bestScore = getBestScore(mapId);
+  if (score <= bestScore) return;
+
+  try {
+    localStorage.setItem(bestScoreKey(mapId), String(score));
+  } catch {
+    // The game still works if localStorage is unavailable.
+  }
+}
+
+function wireOptionalImage(image, fallback) {
+  const showImage = () => {
+    fallback.hidden = true;
+  };
+  const showFallback = () => {
+    image.remove();
+    fallback.hidden = false;
+  };
+
+  image.addEventListener("load", showImage);
+  image.addEventListener("error", showFallback);
+
+  if (image.complete) {
+    if (image.naturalWidth > 0) showImage();
+    else showFallback();
+  }
+}
+
+function mapMetaText(map) {
+  const lanes = map.pathCells.length === 1 ? "1 lane" : `${map.pathCells.length} lanes`;
+  return `${map.difficulty} / ${lanes} / Core ${map.lives} / Credits ${map.credits}`;
 }
 
 function showToast(message) {
@@ -378,11 +431,41 @@ function buildLevelCards() {
     `;
     button.addEventListener("click", () => {
       if (state.mapIndex === index && !state.gameOver && state.wave === 0) return;
-      applyMap(index);
-      restart(`เลือกด่าน ${map.name}`);
+      chooseMap(index, `เลือกด่าน ${map.name}`);
     });
     ui.levelList.appendChild(button);
   });
+}
+
+function buildMenuLevelCards() {
+  ui.menuLevelList.innerHTML = "";
+
+  maps.forEach((map, index) => {
+    const button = document.createElement("button");
+    button.className = "menu-level";
+    button.type = "button";
+    button.setAttribute("aria-pressed", String(state.mapIndex === index));
+    button.innerHTML = `
+      <small>${map.difficulty}</small>
+      <strong>${map.name}</strong>
+      <span>${map.desc}</span>
+      <span class="menu-level-stats">${mapMetaText(map)} / Best ${formatNumber(getBestScore(map.id))}</span>
+    `;
+    button.addEventListener("click", () => {
+      if (state.mapIndex === index) return;
+      chooseMap(index, `เลือกด่าน ${map.name}`, { toast: false });
+    });
+    ui.menuLevelList.appendChild(button);
+  });
+}
+
+function updateMenuMeta() {
+  ui.menuMeta.textContent = `${activeMap.name}: ${mapMetaText(activeMap)}`;
+}
+
+function chooseMap(index, message = "เลือกด่านแล้ว", options = {}) {
+  applyMap(index);
+  restart(message, { toast: options.toast ?? !state.menuOpen });
 }
 
 function buildTowerCards() {
@@ -436,7 +519,8 @@ function updateHud() {
   ui.speedBtn.textContent = `${state.speed}x`;
   ui.speedBtn.setAttribute("aria-pressed", String(state.speed > 1));
   ui.startWaveBtn.textContent = state.gameOver ? "Restart" : "Start Wave";
-  ui.startWaveBtn.disabled = state.waveActive || (!state.gameOver && state.wave >= MAX_WAVES);
+  ui.startWaveBtn.disabled =
+    state.menuOpen || state.waveActive || (!state.gameOver && state.wave >= MAX_WAVES);
 }
 
 function towerStats(tower) {
@@ -495,6 +579,7 @@ function updateSelectionPanel() {
 }
 
 function startWave() {
+  if (state.menuOpen) return;
   if (state.waveActive || state.gameOver || state.wave >= MAX_WAVES) return;
 
   state.wave += 1;
@@ -503,6 +588,13 @@ function startWave() {
   addLog(`Wave ${state.wave} เริ่มแล้ว`);
   showToast(`Wave ${state.wave}`);
   updateHud();
+}
+
+function enterGame() {
+  state.menuOpen = false;
+  ui.menuScreen.classList.add("is-hidden");
+  ui.menuScreen.setAttribute("aria-hidden", "true");
+  restart(`เข้าสู่ ${activeMap.name}`);
 }
 
 function buildWave(wave) {
@@ -937,12 +1029,16 @@ function endGame(won) {
   state.won = won;
   state.waveActive = false;
   state.spawns = [];
+  saveBestScore(activeMap.id, state.score);
+  buildLevelCards();
+  buildMenuLevelCards();
   addLog(won ? "Core ปลอดภัย คุณชนะแล้ว" : "Core ล่ม ลองวางทาวเวอร์ให้บีบเส้นทางยิงมากขึ้น");
   showToast(won ? "Victory" : "Game Over");
   updateHud();
+  updateMenuMeta();
 }
 
-function restart(message = "เริ่มใหม่แล้ว") {
+function restart(message = "เริ่มใหม่แล้ว", options = {}) {
   applyMap(state.mapIndex);
   state.credits = activeMap.credits;
   state.lives = activeMap.lives;
@@ -962,11 +1058,13 @@ function restart(message = "เริ่มใหม่แล้ว") {
   state.gameOver = false;
   state.won = false;
   buildLevelCards();
+  buildMenuLevelCards();
   buildTowerCards();
   updateSelectionPanel();
   updateHud();
+  updateMenuMeta();
   addLog(`${activeMap.name}: ${activeMap.desc}`);
-  showToast(message);
+  if (options.toast ?? true) showToast(message);
 }
 
 function draw() {
@@ -1319,6 +1417,7 @@ canvas.addEventListener("click", handleCanvasClick);
 
 ui.upgradeBtn.addEventListener("click", upgradeSelected);
 ui.sellBtn.addEventListener("click", sellSelected);
+ui.menuStartBtn.addEventListener("click", enterGame);
 ui.startWaveBtn.addEventListener("click", () => {
   if (state.gameOver) {
     restart();
@@ -1337,6 +1436,15 @@ ui.speedBtn.addEventListener("click", () => {
 });
 
 window.addEventListener("keydown", (event) => {
+  if (state.menuOpen) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      enterGame();
+    }
+    if (event.key === " ") event.preventDefault();
+    return;
+  }
+
   if (event.key === " ") {
     event.preventDefault();
     if (state.gameOver) restart();
@@ -1363,15 +1471,12 @@ window.addEventListener("keydown", (event) => {
 });
 
 buildLevelCards();
+buildMenuLevelCards();
 buildTowerCards();
 updateSelectionPanel();
 updateHud();
+updateMenuMeta();
 addLog(`${activeMap.name}: ${activeMap.desc}`);
-ui.brandLogo.addEventListener("load", () => {
-  ui.brandLogoFallback.hidden = true;
-});
-ui.brandLogo.addEventListener("error", () => {
-  ui.brandLogo.remove();
-  ui.brandLogoFallback.hidden = false;
-});
+wireOptionalImage(ui.menuLogo, ui.menuLogoFallback);
+wireOptionalImage(ui.brandLogo, ui.brandLogoFallback);
 requestAnimationFrame(gameLoop);
