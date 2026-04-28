@@ -9,6 +9,7 @@ const ui = {
   wave: document.querySelector("#wave"),
   score: document.querySelector("#score"),
   towerList: document.querySelector("#towerList"),
+  levelList: document.querySelector("#levelList"),
   brandLogo: document.querySelector("#brandLogo"),
   brandLogoFallback: document.querySelector("#brandLogoFallback"),
   selectedTitle: document.querySelector("#selectedTitle"),
@@ -285,10 +286,11 @@ const enemyTypes = {
 };
 
 const state = {
-  credits: 150,
-  lives: 20,
+  credits: activeMap.credits,
+  lives: activeMap.lives,
   wave: 0,
   score: 0,
+  mapIndex: 0,
   selectedTowerType: "firewall",
   selectedTower: null,
   towers: [],
@@ -328,6 +330,11 @@ function cellCenter(col, row) {
   };
 }
 
+function getCorePoint() {
+  const primaryPath = paths[0];
+  return primaryPath[primaryPath.length - 1];
+}
+
 function isPath(col, row) {
   return pathSet.has(`${col},${row}`);
 }
@@ -345,6 +352,37 @@ function canPlace(col, row) {
     !isPath(col, row) &&
     !towerAt(col, row)
   );
+}
+
+function applyMap(index) {
+  state.mapIndex = index;
+  activeMap = maps[index];
+  paths = activeMap.pathCells.map(cellsToPath);
+  pathSet = buildPathSet(activeMap.pathCells);
+}
+
+function buildLevelCards() {
+  ui.levelList.innerHTML = "";
+
+  maps.forEach((map, index) => {
+    const button = document.createElement("button");
+    button.className = "level";
+    button.type = "button";
+    button.setAttribute("aria-pressed", String(state.mapIndex === index));
+    button.innerHTML = `
+      <span>
+        <strong>${map.name}</strong>
+        <small>${map.desc}</small>
+      </span>
+      <em>${map.difficulty}</em>
+    `;
+    button.addEventListener("click", () => {
+      if (state.mapIndex === index && !state.gameOver && state.wave === 0) return;
+      applyMap(index);
+      restart(`เลือกด่าน ${map.name}`);
+    });
+    ui.levelList.appendChild(button);
+  });
 }
 
 function buildTowerCards() {
@@ -469,20 +507,28 @@ function startWave() {
 
 function buildWave(wave) {
   const spawns = [];
-  const count = 7 + wave * 2;
-  const hpScale = 1 + wave * 0.16;
+  const laneCount = paths.length;
+  const count = Math.max(5, 7 + wave * 2 + activeMap.countBonus);
+  const hpScale = (1 + wave * 0.16) * activeMap.hpScale;
+  const gap = Math.max(220, 760 - wave * 18 + activeMap.gapBonus);
   let at = 0;
 
   for (let i = 0; i < count; i += 1) {
     let type = "bug";
     if (wave >= 4 && i % 4 === 0) type = "spark";
     if (wave >= 6 && i % 5 === 2) type = "worm";
-    spawns.push({ at, type, hpScale });
-    at += Math.max(260, 760 - wave * 18);
+    const pathIndex = i % laneCount;
+    spawns.push({ at: at + pathIndex * 180, type, hpScale, pathIndex });
+    at += gap;
   }
 
   if (wave % 5 === 0) {
-    spawns.push({ at: at + 800, type: "boss", hpScale: 0.82 + wave * 0.18 });
+    spawns.push({
+      at: at + 800,
+      type: "boss",
+      hpScale: (0.82 + wave * 0.18) * activeMap.hpScale,
+      pathIndex: Math.floor(wave / 5) % laneCount,
+    });
   }
 
   return spawns;
@@ -490,10 +536,12 @@ function buildWave(wave) {
 
 function spawnEnemy(spawn) {
   const template = enemyTypes[spawn.type];
+  const path = paths[spawn.pathIndex || 0];
   const start = path[0];
   const enemy = {
     type: spawn.type,
     name: template.name,
+    pathIndex: spawn.pathIndex || 0,
     x: start.x - CELL,
     y: start.y,
     segment: 0,
@@ -501,7 +549,7 @@ function spawnEnemy(spawn) {
     maxHp: template.hp * spawn.hpScale,
     hp: template.hp * spawn.hpScale,
     speed: template.speed * (1 + Math.min(0.24, state.wave * 0.012)),
-    reward: Math.round(template.reward * (1 + state.wave * 0.08)),
+    reward: Math.round(template.reward * (1 + state.wave * 0.08) * activeMap.rewardScale),
     radius: template.radius,
     color: template.color,
     slowUntil: 0,
@@ -653,6 +701,7 @@ function update(delta, now) {
 function updateEnemies(delta, now) {
   for (let i = state.enemies.length - 1; i >= 0; i -= 1) {
     const enemy = state.enemies[i];
+    const path = paths[enemy.pathIndex];
     const target = path[enemy.segment];
     const dx = target.x - enemy.x;
     const dy = target.y - enemy.y;
@@ -725,7 +774,7 @@ function acquireTarget(tower, range) {
 
   state.enemies.forEach((enemy) => {
     const distance = Math.hypot(enemy.x - tower.x, enemy.y - tower.y);
-    const progress = enemy.segment * CELL + Math.hypot(enemy.x - path[0].x, enemy.y - path[0].y);
+    const progress = enemy.segment * CELL;
     if (distance <= range && progress > bestProgress) {
       best = enemy;
       bestProgress = progress;
@@ -860,7 +909,8 @@ function popParticles(x, y, color, count) {
 }
 
 function shakeCore() {
-  popParticles(path[path.length - 1].x, path[path.length - 1].y, "#ff6b6b", 24);
+  const core = getCorePoint();
+  popParticles(core.x, core.y, "#ff6b6b", 24);
   updateHud();
 }
 
@@ -892,9 +942,10 @@ function endGame(won) {
   updateHud();
 }
 
-function restart() {
-  state.credits = 150;
-  state.lives = 20;
+function restart(message = "เริ่มใหม่แล้ว") {
+  applyMap(state.mapIndex);
+  state.credits = activeMap.credits;
+  state.lives = activeMap.lives;
   state.wave = 0;
   state.score = 0;
   state.selectedTowerType = "firewall";
@@ -910,11 +961,12 @@ function restart() {
   state.speed = 1;
   state.gameOver = false;
   state.won = false;
+  buildLevelCards();
   buildTowerCards();
   updateSelectionPanel();
   updateHud();
-  addLog("พร้อมแล้ว เลือกทาวเวอร์แล้ววางข้างเส้นทาง");
-  showToast("เริ่มใหม่แล้ว");
+  addLog(`${activeMap.name}: ${activeMap.desc}`);
+  showToast(message);
 }
 
 function draw() {
@@ -963,33 +1015,37 @@ function drawPath() {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
-  ctx.beginPath();
-  ctx.moveTo(path[0].x - CELL, path[0].y);
-  path.forEach((point) => ctx.lineTo(point.x, point.y));
-  ctx.strokeStyle = "rgba(41, 73, 82, 0.98)";
-  ctx.lineWidth = 56;
-  ctx.stroke();
+  paths.forEach((path, index) => {
+    ctx.beginPath();
+    ctx.moveTo(path[0].x - CELL, path[0].y);
+    path.forEach((point) => ctx.lineTo(point.x, point.y));
+    ctx.strokeStyle = "rgba(41, 73, 82, 0.98)";
+    ctx.lineWidth = 56;
+    ctx.stroke();
 
-  ctx.beginPath();
-  ctx.moveTo(path[0].x - CELL, path[0].y);
-  path.forEach((point) => ctx.lineTo(point.x, point.y));
-  ctx.strokeStyle = "rgba(55, 227, 162, 0.22)";
-  ctx.lineWidth = 32;
-  ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(path[0].x - CELL, path[0].y);
+    path.forEach((point) => ctx.lineTo(point.x, point.y));
+    ctx.strokeStyle =
+      index === 0 ? "rgba(55, 227, 162, 0.22)" : "rgba(70, 167, 255, 0.2)";
+    ctx.lineWidth = 32;
+    ctx.stroke();
 
-  ctx.setLineDash([16, 18]);
-  ctx.lineDashOffset = -performance.now() / 40;
-  ctx.beginPath();
-  ctx.moveTo(path[0].x - CELL, path[0].y);
-  path.forEach((point) => ctx.lineTo(point.x, point.y));
-  ctx.strokeStyle = "rgba(189, 255, 232, 0.4)";
-  ctx.lineWidth = 4;
-  ctx.stroke();
+    ctx.setLineDash([16, 18]);
+    ctx.lineDashOffset = -performance.now() / 40 - index * 10;
+    ctx.beginPath();
+    ctx.moveTo(path[0].x - CELL, path[0].y);
+    path.forEach((point) => ctx.lineTo(point.x, point.y));
+    ctx.strokeStyle = "rgba(189, 255, 232, 0.4)";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
   ctx.restore();
 }
 
 function drawCore() {
-  const core = path[path.length - 1];
+  const core = getCorePoint();
   const pulse = 0.5 + Math.sin(performance.now() / 220) * 0.5;
   ctx.save();
   ctx.translate(core.x, core.y);
@@ -1306,10 +1362,11 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+buildLevelCards();
 buildTowerCards();
 updateSelectionPanel();
 updateHud();
-addLog("พร้อมแล้ว เลือกทาวเวอร์แล้ววางข้างเส้นทาง");
+addLog(`${activeMap.name}: ${activeMap.desc}`);
 ui.brandLogo.addEventListener("load", () => {
   ui.brandLogoFallback.hidden = true;
 });
