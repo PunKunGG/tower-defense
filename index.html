@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Byte Defense</title>
+    <link rel="icon" type="image/png" href="assets/logo-removebg.png" />
+    <link rel="apple-touch-icon" href="assets/logo-removebg.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="playfield" aria-label="Byte Defense game board">
+        <canvas id="game" width="1120" height="720" aria-label="Tower defense canvas"></canvas>
+        <div class="toast" id="toast" aria-live="polite"></div>
+      </section>
+
+      <aside class="hud" aria-label="Game controls">
+        <div class="brand">
+          <div class="mark" aria-hidden="true">
+            <img id="brandLogo" class="brand-logo" src="assets/logo.png" alt="" />
+            <span id="brandLogoFallback">BD</span>
+          </div>
+          <div>
+            <h1>Byte Defense</h1>
+            <p>กันไวรัสไม่ให้เจาะ Core</p>
+          </div>
+        </div>
+
+        <div class="stats" aria-label="Game stats">
+          <div>
+            <span>Credits</span>
+            <strong id="credits">0</strong>
+          </div>
+          <div>
+            <span>Core</span>
+            <strong id="lives">0</strong>
+          </div>
+          <div>
+            <span>Wave</span>
+            <strong id="wave">0/20</strong>
+          </div>
+          <div>
+            <span>Score</span>
+            <strong id="score">0</strong>
+          </div>
+        </div>
+
+        <div class="tower-list" id="towerList" aria-label="Tower picker"></div>
+
+        <div class="selected" id="selectedPanel">
+          <h2 id="selectedTitle">เลือกทาวเวอร์</h2>
+          <p id="selectedText">แตะทาวเวอร์ด้านบน แล้วกดช่องว่างบนกระดานเพื่อวาง</p>
+          <div class="selected-actions">
+            <button id="upgradeBtn" type="button" disabled>อัปเกรด</button>
+            <button id="sellBtn" type="button" disabled>ขาย</button>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button id="startWaveBtn" type="button">เริ่ม</button>
+          <button id="pauseBtn" type="button" aria-pressed="false">หยุดชั่วคราว</button>
+          <button id="speedBtn" type="button" aria-pressed="false">1x</button>
+        </div>
+
+        <div class="log" id="log" aria-live="polite"></div>
+      </aside>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
