@@ -105,6 +105,7 @@ function evaluateRunAchievements(won) {
   if (state.analytics.leakCount === 0) recordAchievement("core_guardian");
   if (won && !state.runStats.usedCache) recordAchievement("no_cache");
   if (won && activeMap.id === "triport") recordAchievement("triport_winner");
+  if (won && activeMap.id === "maze") recordAchievement("maze_winner");
   if (won && state.dailyMode) recordAchievement("daily_clear");
   if (state.endlessMode && state.wave >= 25) recordAchievement("endless_25");
 }
@@ -197,6 +198,8 @@ function loadCurrentBuildPreset() {
       branch: spec.level >= 3 ? spec.branch || null : null,
       pulse: 1,
       targetPriority: spec.targetPriority || "first",
+      kills: 0,
+      totalDamage: 0,
     });
     if (spec.type === "cache") state.runStats.usedCache = true;
   });
@@ -331,9 +334,10 @@ function buildWave(wave) {
   const gap = Math.max(220, 760 - wave * 18 + activeMap.gapBonus);
   const isSplitMap = activeMap.id === "split";
   const isTriportMap = activeMap.id === "triport";
-  const laneOffsetBase = isTriportMap ? 80 : isSplitMap ? 110 : 180;
-  const syncEvery = isTriportMap ? 3 : isSplitMap ? 4 : 0;
-  const mapPressureBoost = isTriportMap ? 0.08 : isSplitMap ? 0.04 : 0;
+  const isMazeMap = activeMap.id === "maze";
+  const laneOffsetBase = isMazeMap ? 55 : isTriportMap ? 80 : isSplitMap ? 110 : 180;
+  const syncEvery = isMazeMap ? 4 : isTriportMap ? 3 : isSplitMap ? 4 : 0;
+  const mapPressureBoost = isMazeMap ? 0.12 : isTriportMap ? 0.08 : isSplitMap ? 0.04 : 0;
   let at = 0;
 
   const jammerWave = 14 + modifierTotals.jammerWaveShift;
@@ -351,10 +355,16 @@ function buildWave(wave) {
     if (isTriportMap && wave >= 7 && i % 5 === 1) type = "spark";
     if (isTriportMap && wave >= 11 && i % 7 === 4) type = "shield";
     if (isTriportMap && wave >= 10 && i % 6 === 2) type = "jammer";
+    if (isMazeMap && wave >= 5 && i % 4 === 1) type = "spark";
+    if (isMazeMap && wave >= 7 && i % 5 === 3) type = "shield";
+    if (isMazeMap && wave >= 9 && i % 6 === 2) type = "fork";
+    if (isMazeMap && wave >= 11 && i % 7 === 5) type = "regen";
+    if (isMazeMap && wave >= 12 && i % 8 === 4) type = "jammer";
     const pathIndex = i % laneCount;
     const pressureScale = 1 + Math.floor(wave / 4) * mapPressureBoost;
     const spawnAt = at + pathIndex * laneOffsetBase;
-    spawns.push({ at: spawnAt, type, hpScale: hpScale * pressureScale, pathIndex });
+    const elite = type !== "boss" && Math.random() < 0.13;
+    spawns.push({ at: spawnAt, type, hpScale: hpScale * pressureScale, pathIndex, elite });
 
     if (laneCount > 1 && syncEvery && wave >= 5 && i % syncEvery === syncEvery - 1) {
       const burstType = wave >= 12 ? "fork" : wave >= 8 ? "worm" : "bug";
@@ -447,7 +457,17 @@ function spawnEnemy(spawn) {
     dotUntil: 0,
     dotDamage: 0,
     hitFlash: 0,
+    elite: false,
   };
+
+  if (spawn.elite) {
+    enemy.maxHp = Math.round(enemy.maxHp * 1.5);
+    enemy.hp = enemy.maxHp;
+    enemy.speed *= 1.18;
+    enemy.reward = Math.round(enemy.reward * 1.6);
+    enemy.elite = true;
+  }
+
   state.enemies.push(enemy);
 }
 
@@ -489,6 +509,8 @@ function placeTower(col, row) {
     branch: null,
     pulse: 0,
     targetPriority: "first",
+    kills: 0,
+    totalDamage: 0,
   };
 
   state.credits -= type.cost;

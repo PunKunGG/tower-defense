@@ -445,10 +445,14 @@ function updateSelectionPanel() {
     const branch = getTowerBranch(selected);
     const upgradeText = selected.level >= 3 ? "เต็มเลเวลแล้ว" : `อัปเกรด ${upgradeCost(selected)} credits`;
     const branchText = branch ? ` / ${branch.name}` : "";
-    ui.selectedTitle.textContent = `${type.name} Lv.${selected.level}`;
-    ui.selectedText.textContent = selected.type === "cache"
+    const kills = selected.kills || 0;
+    const totalDmg = Math.round(selected.totalDamage || 0);
+    const statsLine = selected.type === "cache"
       ? `${upgradeText}${branchText}. สร้าง credits ทุกไม่กี่วินาที ขายได้ ${sellValue(selected)}.`
       : `${upgradeText}${branchText}. Damage ${Math.round(stats.damage)}, Range ${Math.round(stats.range)}, ขายได้ ${sellValue(selected)}.`;
+    const combatLine = selected.type !== "cache" ? ` Kills ${formatNumber(kills)} / Total DMG ${formatNumber(totalDmg)}` : "";
+    ui.selectedTitle.textContent = `${type.name} Lv.${selected.level}`;
+    ui.selectedText.textContent = statsLine + combatLine;
 
     if (selected.level === 2 && !selected.branch) {
       const branches = towerBranches[selected.type] || [];
