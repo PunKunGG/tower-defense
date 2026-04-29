@@ -29,6 +29,16 @@
 
         <div class="menu-levels" id="menuLevelList" aria-label="Menu level picker"></div>
 
+        <div class="menu-options">
+          <label class="menu-toggle" for="endlessToggle">
+            <input id="endlessToggle" type="checkbox" />
+            <span>Endless Mode (wave infinite)</span>
+          </label>
+          <button class="menu-daily" id="dailyChallengeBtn" type="button">Daily Challenge</button>
+          <p class="menu-daily-meta" id="dailyMeta">Daily: ไม่ได้เปิดใช้งาน</p>
+          <div class="menu-loadout" id="menuLoadout" aria-label="Tower loadout"></div>
+        </div>
+
         <button class="menu-start" id="menuStartBtn" type="button">Start Game</button>
       </div>
     </section>
@@ -95,6 +105,19 @@
             <button id="upgradeBtn" type="button" disabled>อัปเกรด</button>
             <button id="sellBtn" type="button" disabled>ขาย</button>
           </div>
+          <div class="targeting" id="targetingControls" hidden>
+            <p>Target Priority</p>
+            <div class="targeting-actions" id="targetingActions">
+              <button type="button" data-priority="first">First</button>
+              <button type="button" data-priority="last">Last</button>
+              <button type="button" data-priority="strong">Strong</button>
+              <button type="button" data-priority="fast">Fast</button>
+            </div>
+          </div>
+          <div class="preset-actions">
+            <button id="saveBuildBtn" type="button">Save Build</button>
+            <button id="loadBuildBtn" type="button">Load Build</button>
+          </div>
         </div>
 
         <div class="controls">
@@ -108,6 +131,20 @@
         <div class="log" id="log" aria-live="polite"></div>
       </aside>
     </main>
+
+    <section class="pause-modal" id="pauseModal" hidden aria-label="Pause menu">
+      <div class="pause-panel" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+        <p id="pauseKicker">Game Paused</p>
+        <h2 id="pauseTitle">Pause Menu</h2>
+        <p id="pauseMeta">Take a breath, then get back to defending the core.</p>
+        <div class="pause-actions">
+          <button id="pauseResumeBtn" type="button">Resume</button>
+          <button id="pauseRestartBtn" type="button">Restart</button>
+          <button id="pauseLevelBtn" type="button">Level Select</button>
+          <button id="pauseCodexBtn" type="button">Codex</button>
+        </div>
+      </div>
+    </section>
 
     <section class="codex-modal" id="codexModal" hidden aria-label="Game codex">
       <div class="codex-panel" role="dialog" aria-modal="true" aria-labelledby="codexTitle">
@@ -151,6 +188,41 @@
           </div>
         </div>
         <p class="result-note" id="resultNote"></p>
+        <div class="result-insights">
+          <div>
+            <span>Top Damage Tower</span>
+            <strong id="resultTopTower">-</strong>
+            <small id="resultTopDamage">0</small>
+          </div>
+          <div>
+            <span>Peak Credits</span>
+            <strong id="resultPeakCredits">0</strong>
+            <small>max economy</small>
+          </div>
+          <div class="result-insight-wide">
+            <span>Leak Report</span>
+            <strong id="resultLeakSummary">-</strong>
+          </div>
+        </div>
+        <div class="result-badges" id="resultBadges"></div>
+        <div class="result-advanced">
+          <div>
+            <span>Total Kills</span>
+            <strong id="resultTotalKills">0</strong>
+          </div>
+          <div>
+            <span>Total Shots</span>
+            <strong id="resultTotalShots">0</strong>
+          </div>
+          <div>
+            <span>Economy Gain</span>
+            <strong id="resultEconomy">0</strong>
+          </div>
+          <div>
+            <span>Run Modifiers</span>
+            <strong id="resultModifiers">None</strong>
+          </div>
+        </div>
         <div class="result-actions">
           <button id="resultReplayBtn" type="button">Replay</button>
           <button id="resultMenuBtn" type="button">Level Select</button>
@@ -158,6 +230,11 @@
       </div>
     </section>
 
+    <script src="constants.js"></script>
+    <script src="utils.js"></script>
+    <script src="ui.js"></script>
+    <script src="gameplay.js"></script>
+    <script src="rendering.js"></script>
     <script src="game.js"></script>
   </body>
 </html>
