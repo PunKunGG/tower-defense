@@ -11,9 +11,22 @@ function initAnalytics() {
       cryo: 0,
       cache: 0,
     },
+    towerKills: {
+      firewall: 0,
+      patch: 0,
+      cryo: 0,
+      cache: 0,
+    },
+    towerShots: {
+      firewall: 0,
+      patch: 0,
+      cryo: 0,
+      cache: 0,
+    },
     leakCount: 0,
     leaksByWave: {},
     peakCredits: activeMap.credits,
+    economyGenerated: 0,
   };
 }
 
@@ -98,6 +111,33 @@ ui.hintCodexBtn.addEventListener("click", () => {
 
 // Event listeners - Menu
 ui.menuStartBtn.addEventListener("click", enterGame);
+ui.endlessToggle.addEventListener("change", () => {
+  if (state.dailyMode) {
+    ui.endlessToggle.checked = false;
+    showToast("Daily Challenge ปิด Endless ไว้");
+    return;
+  }
+  state.menuEndless = ui.endlessToggle.checked;
+  updateMenuMeta();
+});
+ui.dailyChallengeBtn.addEventListener("click", () => {
+  state.dailyMode = !state.dailyMode;
+  if (state.dailyMode) {
+    const daily = getDailyConfig();
+    state.menuSelectedIndex = daily.mapIndex;
+    state.menuEndless = false;
+    state.menuLoadout = daily.loadout;
+    state.runModifiers = daily.modifiers;
+    showToast(`Daily ${daily.dayKey} พร้อมแล้ว`);
+  } else {
+    state.menuLoadout = getSavedLoadout() || ["firewall", "patch", "cryo", "cache"];
+    state.runModifiers = pickRunModifiers(Date.now(), 1);
+    showToast("ปิด Daily Challenge แล้ว");
+  }
+  buildMenuLevelCards();
+  buildLoadoutPicker();
+  updateMenuMeta();
+});
 
 // Event listeners - Game controls
 ui.startWaveBtn.addEventListener("click", () => {
@@ -114,6 +154,13 @@ ui.speedBtn.addEventListener("click", () => {
   state.speed = state.speed === 1 ? 2 : state.speed === 2 ? 3 : 1;
   updateHud();
 });
+ui.targetingActions.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-priority]");
+  if (!button) return;
+  setSelectedTowerPriority(button.dataset.priority);
+});
+ui.saveBuildBtn.addEventListener("click", saveCurrentBuildPreset);
+ui.loadBuildBtn.addEventListener("click", loadCurrentBuildPreset);
 
 // Event listeners - Keyboard
 window.addEventListener("keydown", (event) => {
@@ -188,6 +235,10 @@ window.addEventListener("keydown", (event) => {
   };
   if (towerKeys[event.key]) {
     const nextType = towerKeys[event.key];
+    if (!state.menuOpen && !isTowerAllowed(nextType)) {
+      showToast("Tower นี้ไม่อยู่ใน loadout");
+      return;
+    }
     state.selectedTowerType =
       state.selectedTowerType === nextType && !state.selectedTower ? null : nextType;
     state.selectedTower = null;
@@ -197,6 +248,8 @@ window.addEventListener("keydown", (event) => {
 });
 
 // Initialization
+const initialLoadout = getSavedLoadout() || ["firewall", "patch", "cryo", "cache"];
+
 state = {
   credits: activeMap.credits,
   lives: activeMap.lives,
@@ -204,7 +257,19 @@ state = {
   score: 0,
   mapIndex: 0,
   menuSelectedIndex: 0,
-  selectedTowerType: "firewall",
+  runSeed: 0,
+  dailyKey: null,
+  dailyMode: false,
+  endlessMode: false,
+  menuEndless: false,
+  menuLoadout: [...initialLoadout],
+  loadout: [...initialLoadout],
+  runModifiers: pickRunModifiers(Date.now(), 1),
+  unlockedAchievements: getUnlockedAchievements(),
+  runStats: {
+    usedCache: false,
+  },
+  selectedTowerType: initialLoadout[0] || "firewall",
   selectedTower: null,
   towers: [],
   enemies: [],
@@ -233,6 +298,7 @@ state = {
 };
 
 buildMenuLevelCards();
+buildLoadoutPicker();
 buildTowerCards();
 updateSelectionPanel();
 updateHud();

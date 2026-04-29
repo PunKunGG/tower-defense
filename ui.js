@@ -85,7 +85,7 @@ function showPauseModal() {
   hideResultModal();
   state.paused = true;
   ui.pauseTitle.textContent = "Pause Menu";
-  ui.pauseMeta.textContent = `${activeMap.name} - Wave ${state.wave}/${MAX_WAVES} - Score ${formatNumber(state.score)}`;
+  ui.pauseMeta.textContent = `${activeMap.name} - Wave ${state.wave}/${getWaveLabelValue()} - Score ${formatNumber(state.score)}`;
   ui.pauseModal.hidden = false;
   updateHud();
 }
@@ -123,6 +123,11 @@ function showResultModal(won, stars) {
   const leakSummary = worstWaveEntry
     ? `Wave ${worstWaveEntry[0]} หลุด ${worstWaveEntry[1]} ตัว / รวม ${state.analytics.leakCount}`
     : "กันได้ครบทุก wave";
+  const totalKills = Object.values(state.analytics.towerKills).reduce((acc, value) => acc + value, 0);
+  const totalShots = Object.values(state.analytics.towerShots).reduce((acc, value) => acc + value, 0);
+  const modifiersText = state.runModifiers.length
+    ? state.runModifiers.map((modifier) => modifier.name).join(", ")
+    : "None";
 
   hidePauseModal();
   ui.resultKicker.textContent = won ? "Level Complete" : "Core Breached";
@@ -131,11 +136,21 @@ function showResultModal(won, stars) {
   ui.resultScore.textContent = formatNumber(state.score);
   ui.resultBest.textContent = formatNumber(bestScore);
   ui.resultCore.textContent = `${formatNumber(coreLeft)}/${formatNumber(activeMap.lives)}`;
-  ui.resultWave.textContent = `${state.wave}/${MAX_WAVES}`;
+  ui.resultWave.textContent = `${state.wave}/${getWaveLabelValue()}`;
   ui.resultTopTower.textContent = towerTypes[topTowerId].name;
   ui.resultTopDamage.textContent = formatNumber(topTowerDamage);
   ui.resultPeakCredits.textContent = formatNumber(state.analytics.peakCredits);
   ui.resultLeakSummary.textContent = leakSummary;
+  ui.resultTotalKills.textContent = formatNumber(totalKills);
+  ui.resultTotalShots.textContent = formatNumber(totalShots);
+  ui.resultEconomy.textContent = formatNumber(state.analytics.economyGenerated);
+  ui.resultModifiers.textContent = modifiersText;
+  ui.resultBadges.innerHTML = state.unlockedAchievements
+    .map((achievementId) => ACHIEVEMENTS.find((item) => item.id === achievementId))
+    .filter(Boolean)
+    .slice(-4)
+    .map((achievement) => `<span class="result-badge" title="${achievement.desc}">${achievement.name}</span>`)
+    .join("");
   ui.resultNote.textContent = won
     ? isNewBest
       ? "New best score!"
@@ -209,7 +224,16 @@ function buildMenuLevelCards() {
 
 function updateMenuMeta() {
   const selectedMap = maps[state.menuSelectedIndex];
-  ui.menuMeta.textContent = `${selectedMap.name}: ${renderStars(getBestStars(selectedMap.id))} / ${mapMetaText(selectedMap)}`;
+  const modifiers = state.dailyMode
+    ? "Daily preset"
+    : state.runModifiers.length
+      ? state.runModifiers.map((modifier) => modifier.name).join(" + ")
+      : "No modifier";
+  ui.menuMeta.textContent = `${selectedMap.name}: ${renderStars(getBestStars(selectedMap.id))} / ${mapMetaText(selectedMap)} / ${modifiers}`;
+  ui.endlessToggle.checked = !!state.menuEndless;
+  ui.dailyMeta.textContent = state.dailyMode
+    ? `Daily active (${getTodayKey()})${hasPlayedDaily(getTodayKey()) ? " - เล่นแล้ว" : " - ยังไม่เล่น"}`
+    : "Daily: ไม่ได้เปิดใช้งาน";
 
   if (!state.gameStarted) {
     ui.menuStartBtn.textContent = "Start Game";
@@ -222,7 +246,43 @@ function updateMenuMeta() {
   }
 }
 
+function buildLoadoutPicker() {
+  ui.menuLoadout.innerHTML = "";
+
+  Object.values(towerTypes).forEach((tower) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "loadout-item";
+    const enabled = state.menuLoadout.includes(tower.id);
+    button.setAttribute("aria-pressed", String(enabled));
+    button.textContent = tower.name;
+    button.addEventListener("click", () => {
+      if (state.dailyMode) {
+        showToast("Daily Challenge ล็อก loadout ไว้แล้ว");
+        return;
+      }
+      if (enabled) {
+        if (state.menuLoadout.length <= 1) {
+          showToast("ต้องเลือกอย่างน้อย 1 tower");
+          return;
+        }
+        state.menuLoadout = state.menuLoadout.filter((id) => id !== tower.id);
+      } else {
+        state.menuLoadout = [...state.menuLoadout, tower.id];
+      }
+      saveLoadout(state.menuLoadout);
+      buildLoadoutPicker();
+      updateMenuMeta();
+    });
+    ui.menuLoadout.appendChild(button);
+  });
+}
+
 function selectMenuMap(index) {
+  if (state.dailyMode) {
+    showToast("Daily Challenge ล็อกด่านไว้แล้ว");
+    return;
+  }
   state.menuSelectedIndex = index;
   buildMenuLevelCards();
   updateMenuMeta();
@@ -257,6 +317,7 @@ function buildTowerCards() {
   ui.towerList.innerHTML = "";
 
   Object.values(towerTypes).forEach((tower) => {
+    if (!state.loadout.includes(tower.id)) return;
     const button = document.createElement("button");
     button.className = "tower";
     button.type = "button";
@@ -299,7 +360,7 @@ function updateHud() {
   state.analytics.peakCredits = Math.max(state.analytics.peakCredits, state.credits);
   ui.credits.textContent = formatNumber(state.credits);
   ui.lives.textContent = formatNumber(state.lives);
-  ui.wave.textContent = `${state.wave}/${MAX_WAVES}`;
+  ui.wave.textContent = `${state.wave}/${getWaveLabelValue()}`;
   ui.score.textContent = formatNumber(state.score);
   ui.pauseBtn.textContent = state.paused ? "Resume" : "Pause";
   ui.pauseBtn.setAttribute("aria-pressed", String(state.paused));
@@ -307,7 +368,7 @@ function updateHud() {
   ui.speedBtn.setAttribute("aria-pressed", String(state.speed > 1));
   ui.startWaveBtn.textContent = state.gameOver ? "Restart" : "Start Wave";
   ui.startWaveBtn.disabled =
-    state.menuOpen || state.waveActive || (!state.gameOver && state.wave >= MAX_WAVES);
+    state.menuOpen || state.waveActive || (!state.gameOver && state.wave >= getWaveCap());
   updateWavePreview();
 }
 
@@ -348,7 +409,7 @@ function updateWavePreview() {
   }
 
   const nextWave = state.wave + 1;
-  if (nextWave > MAX_WAVES) {
+  if (!state.endlessMode && nextWave > MAX_WAVES) {
     ui.wavePreview.innerHTML = `
       <h2>Final wave cleared</h2>
       <p>กด Esc เพื่อกลับเมนูเลือกด่าน</p>
@@ -357,10 +418,14 @@ function updateWavePreview() {
   }
 
   const summary = getWaveSummary(nextWave);
+  const modifierLine = state.runModifiers.length
+    ? `<span>${state.runModifiers.map((modifier) => modifier.name).join(" / ")}</span>`
+    : "";
   ui.wavePreview.innerHTML = `
     <h2>Next Wave ${nextWave}</h2>
     <p>${summary.enemies.join(" / ")}</p>
     <span>${summary.total} enemies / ${summary.lanes} lane${summary.lanes > 1 ? "s" : ""}</span>
+    ${modifierLine}
   `;
 }
 
@@ -370,6 +435,7 @@ function updateSelectionPanel() {
   ui.upgradeBtn.disabled = true;
   ui.sellBtn.disabled = true;
   ui.branchActions.hidden = true;
+  ui.targetingControls.hidden = true;
   ui.branchABtn.disabled = true;
   ui.branchBBtn.disabled = true;
 
@@ -400,6 +466,13 @@ function updateSelectionPanel() {
     } else {
       ui.upgradeBtn.disabled =
         selected.level >= 3 || state.credits < upgradeCost(selected) || state.gameOver;
+    }
+
+    if (selected.type !== "cache") {
+      ui.targetingControls.hidden = false;
+      ui.targetingActions.querySelectorAll("button").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.priority === (selected.targetPriority || "first")));
+      });
     }
     ui.sellBtn.disabled = state.gameOver;
     return;

@@ -12,6 +12,10 @@ const ui = {
   menuLevelList: document.querySelector("#menuLevelList"),
   menuStartBtn: document.querySelector("#menuStartBtn"),
   menuMeta: document.querySelector("#menuMeta"),
+  menuLoadout: document.querySelector("#menuLoadout"),
+  endlessToggle: document.querySelector("#endlessToggle"),
+  dailyChallengeBtn: document.querySelector("#dailyChallengeBtn"),
+  dailyMeta: document.querySelector("#dailyMeta"),
   menuLogo: document.querySelector("#menuLogo"),
   menuLogoFallback: document.querySelector("#menuLogoFallback"),
   towerList: document.querySelector("#towerList"),
@@ -42,6 +46,11 @@ const ui = {
   resultTopDamage: document.querySelector("#resultTopDamage"),
   resultPeakCredits: document.querySelector("#resultPeakCredits"),
   resultLeakSummary: document.querySelector("#resultLeakSummary"),
+  resultBadges: document.querySelector("#resultBadges"),
+  resultTotalKills: document.querySelector("#resultTotalKills"),
+  resultTotalShots: document.querySelector("#resultTotalShots"),
+  resultEconomy: document.querySelector("#resultEconomy"),
+  resultModifiers: document.querySelector("#resultModifiers"),
   resultReplayBtn: document.querySelector("#resultReplayBtn"),
   resultMenuBtn: document.querySelector("#resultMenuBtn"),
   hintPanel: document.querySelector("#hintPanel"),
@@ -59,6 +68,10 @@ const ui = {
   branchBBtn: document.querySelector("#branchBBtn"),
   upgradeBtn: document.querySelector("#upgradeBtn"),
   sellBtn: document.querySelector("#sellBtn"),
+  targetingControls: document.querySelector("#targetingControls"),
+  targetingActions: document.querySelector("#targetingActions"),
+  saveBuildBtn: document.querySelector("#saveBuildBtn"),
+  loadBuildBtn: document.querySelector("#loadBuildBtn"),
   startWaveBtn: document.querySelector("#startWaveBtn"),
   pauseBtn: document.querySelector("#pauseBtn"),
   speedBtn: document.querySelector("#speedBtn"),
@@ -70,6 +83,74 @@ const COLS = 14;
 const ROWS = 9;
 const CELL = 80;
 const MAX_WAVES = 20;
+
+const TARGET_PRIORITIES = {
+  first: "First",
+  last: "Last",
+  strong: "Strong",
+  fast: "Fast",
+};
+
+const RUN_MODIFIER_POOL = [
+  {
+    id: "haste",
+    name: "Haste Nodes",
+    desc: "Enemy speed +15%",
+    speedMul: 1.15,
+  },
+  {
+    id: "fortified",
+    name: "Fortified Packets",
+    desc: "Enemy HP +22%",
+    hpMul: 1.22,
+  },
+  {
+    id: "swarm",
+    name: "Swarm Burst",
+    desc: "Each wave gains +3 enemies",
+    countBonus: 3,
+  },
+  {
+    id: "ration",
+    name: "Credit Drought",
+    desc: "Enemy reward -12%",
+    rewardMul: 0.88,
+  },
+  {
+    id: "jamstorm",
+    name: "Jam Storm",
+    desc: "Jammer appears 3 waves earlier",
+    jammerWaveShift: -3,
+  },
+];
+
+const ACHIEVEMENTS = [
+  {
+    id: "core_guardian",
+    name: "Core Guardian",
+    desc: "Clear a run without any leak",
+  },
+  {
+    id: "no_cache",
+    name: "No Cache Economy",
+    desc: "Win without placing Cache towers",
+  },
+  {
+    id: "triport_winner",
+    name: "Triport Winner",
+    desc: "Win on Triport Breach",
+  },
+  {
+    id: "daily_clear",
+    name: "Daily Defender",
+    desc: "Clear the Daily Challenge",
+  },
+  {
+    id: "endless_25",
+    name: "Beyond Twenty",
+    desc: "Reach wave 25 in Endless mode",
+  },
+];
 
 const maps = [
   {

@@ -8,6 +8,213 @@ function applyMap(index) {
   pathSet = buildPathSet(activeMap.pathCells);
 }
 
+function getWaveCap() {
+  return state.endlessMode ? Infinity : MAX_WAVES;
+}
+
+function getWaveLabelValue() {
+  return state.endlessMode ? "∞" : String(MAX_WAVES);
+}
+
+function getRunModifierTotals() {
+  return state.runModifiers.reduce(
+    (acc, modifier) => {
+      acc.speedMul *= modifier.speedMul || 1;
+      acc.hpMul *= modifier.hpMul || 1;
+      acc.rewardMul *= modifier.rewardMul || 1;
+      acc.countBonus += modifier.countBonus || 0;
+      acc.jammerWaveShift += modifier.jammerWaveShift || 0;
+      return acc;
+    },
+    {
+      speedMul: 1,
+      hpMul: 1,
+      rewardMul: 1,
+      countBonus: 0,
+      jammerWaveShift: 0,
+    },
+  );
+}
+
+function pickRunModifiers(seedValue, count = 1) {
+  const rng = seededRandom(seedValue || Date.now());
+  const pool = [...RUN_MODIFIER_POOL];
+  const picks = [];
+  const targetCount = Math.max(1, Math.min(count, pool.length));
+
+  while (picks.length < targetCount && pool.length > 0) {
+    const index = Math.floor(rng() * pool.length);
+    picks.push(pool.splice(index, 1)[0]);
+  }
+
+  return picks;
+}
+
+function getDailyConfig() {
+  const dayKey = getTodayKey();
+  const seed = hashString(`daily:${dayKey}`);
+  const rng = seededRandom(seed);
+  const mapIndex = Math.floor(rng() * maps.length);
+  const modifierCount = rng() > 0.55 ? 2 : 1;
+  const modifiers = pickRunModifiers(seed ^ 0x9e3779b9, modifierCount);
+  const loadout = Object.keys(towerTypes)
+    .sort(() => rng() - 0.5)
+    .slice(0, 3);
+
+  return {
+    dayKey,
+    seed,
+    mapIndex,
+    modifiers,
+    loadout,
+  };
+}
+
+function applyRunSetup() {
+  state.endlessMode = !!state.menuEndless;
+  state.loadout = [...state.menuLoadout];
+  state.dailyKey = null;
+
+  if (state.dailyMode) {
+    const daily = getDailyConfig();
+    state.dailyKey = daily.dayKey;
+    state.mapIndex = daily.mapIndex;
+    state.menuSelectedIndex = daily.mapIndex;
+    state.runSeed = daily.seed;
+    state.runModifiers = daily.modifiers;
+    state.loadout = daily.loadout;
+    state.endlessMode = false;
+    return;
+  }
+
+  state.runSeed = Date.now();
+  state.runModifiers = pickRunModifiers(state.runSeed, 1);
+}
+
+function isTowerAllowed(towerType) {
+  return state.loadout.includes(towerType);
+}
+
+function recordAchievement(achievementId) {
+  if (state.unlockedAchievements.includes(achievementId)) return;
+  state.unlockedAchievements.push(achievementId);
+  saveUnlockedAchievements(state.unlockedAchievements);
+}
+
+function evaluateRunAchievements(won) {
+  if (state.analytics.leakCount === 0) recordAchievement("core_guardian");
+  if (won && !state.runStats.usedCache) recordAchievement("no_cache");
+  if (won && activeMap.id === "triport") recordAchievement("triport_winner");
+  if (won && state.dailyMode) recordAchievement("daily_clear");
+  if (state.endlessMode && state.wave >= 25) recordAchievement("endless_25");
+}
+
+function buildTowerSpentFromSpec(spec) {
+  const base = towerTypes[spec.type]?.cost;
+  if (!base) return 0;
+  let spent = base;
+  if (spec.level >= 2) spent += Math.round(base * (0.72 + 1 * 0.58));
+  if (spec.level >= 3) spent += Math.round(base * (0.72 + 2 * 0.58));
+  return spent;
+}
+
+function saveCurrentBuildPreset() {
+  if (state.waveActive) {
+    showToast("บันทึก build ได้เฉพาะช่วงเตรียมตัว");
+    return;
+  }
+
+  const preset = {
+    mapId: activeMap.id,
+    loadout: [...state.loadout],
+    towers: state.towers.map((tower) => ({
+      type: tower.type,
+      col: tower.col,
+      row: tower.row,
+      level: tower.level,
+      branch: tower.branch,
+      targetPriority: tower.targetPriority || "first",
+    })),
+  };
+
+  const ok = saveBuildPreset(activeMap.id, preset);
+  showToast(ok ? "บันทึก preset แล้ว" : "บันทึก preset ไม่สำเร็จ");
+}
+
+function loadCurrentBuildPreset() {
+  if (state.waveActive) {
+    showToast("โหลด build ได้เฉพาะช่วงเตรียมตัว");
+    return;
+  }
+
+  const preset = loadBuildPreset(activeMap.id);
+  if (!preset || !Array.isArray(preset.towers) || preset.towers.length === 0) {
+    showToast("ยังไม่มี preset ของด่านนี้");
+    return;
+  }
+
+  const invalid = preset.towers.some((tower) => !isTowerAllowed(tower.type) || isPath(tower.col, tower.row));
+  if (invalid) {
+    showToast("preset นี้ใช้กับ loadout ปัจจุบันไม่ได้");
+    return;
+  }
+
+  let totalCost = 0;
+  const occupied = new Set();
+  for (const spec of preset.towers) {
+    const key = `${spec.col},${spec.row}`;
+    if (occupied.has(key)) {
+      showToast("preset ซ้อนตำแหน่งกัน");
+      return;
+    }
+    occupied.add(key);
+    totalCost += buildTowerSpentFromSpec(spec);
+  }
+
+  if (totalCost > state.credits) {
+    showToast(`credits ไม่พอ (ต้องใช้ ${formatNumber(totalCost)})`);
+    return;
+  }
+
+  state.towers = [];
+  state.credits -= totalCost;
+  state.selectedTower = null;
+  state.runStats.usedCache = false;
+
+  preset.towers.forEach((spec) => {
+    const center = cellCenter(spec.col, spec.row);
+    state.towers.push({
+      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+      type: spec.type,
+      col: spec.col,
+      row: spec.row,
+      x: center.x,
+      y: center.y,
+      level: Math.max(1, Math.min(3, spec.level || 1)),
+      cooldown: 0,
+      lastEarn: 0,
+      spent: buildTowerSpentFromSpec(spec),
+      branch: spec.level >= 3 ? spec.branch || null : null,
+      pulse: 1,
+      targetPriority: spec.targetPriority || "first",
+    });
+    if (spec.type === "cache") state.runStats.usedCache = true;
+  });
+
+  popParticles(canvas.width * 0.5, canvas.height * 0.5, "#46a7ff", 26);
+  buildTowerCards();
+  updateSelectionPanel();
+  updateHud();
+  showToast("โหลด preset สำเร็จ");
+}
+
+function setSelectedTowerPriority(priority) {
+  if (!TARGET_PRIORITIES[priority]) return;
+  if (!state.selectedTower || state.selectedTower.type === "cache") return;
+  state.selectedTower.targetPriority = priority;
+  updateSelectionPanel();
+}
+
 // Tower stats and costs
 function towerStats(tower) {
   const type = towerTypes[tower.type];
@@ -77,7 +284,7 @@ function sellValue(tower) {
 function startWave() {
   if (state.menuOpen) return;
   if (state.paused) return;
-  if (state.waveActive || state.gameOver || state.wave >= MAX_WAVES) return;
+  if (state.waveActive || state.gameOver || state.wave >= getWaveCap()) return;
 
   state.wave += 1;
   state.waveActive = true;
@@ -118,8 +325,9 @@ function showWaveHint(wave, spawns) {
 function buildWave(wave) {
   const spawns = [];
   const laneCount = paths.length;
-  const count = Math.max(5, 7 + wave * 2 + activeMap.countBonus);
-  const hpScale = (1 + wave * 0.16) * activeMap.hpScale;
+  const modifierTotals = getRunModifierTotals();
+  const count = Math.max(5, 7 + wave * 2 + activeMap.countBonus + modifierTotals.countBonus);
+  const hpScale = (1 + wave * 0.16) * activeMap.hpScale * modifierTotals.hpMul;
   const gap = Math.max(220, 760 - wave * 18 + activeMap.gapBonus);
   const isSplitMap = activeMap.id === "split";
   const isTriportMap = activeMap.id === "triport";
@@ -128,6 +336,8 @@ function buildWave(wave) {
   const mapPressureBoost = isTriportMap ? 0.08 : isSplitMap ? 0.04 : 0;
   let at = 0;
 
+  const jammerWave = 14 + modifierTotals.jammerWaveShift;
+
   for (let i = 0; i < count; i += 1) {
     let type = "bug";
     if (wave >= 4 && i % 4 === 0) type = "spark";
@@ -135,7 +345,7 @@ function buildWave(wave) {
     if (wave >= 8 && i % 7 === 3) type = "shield";
     if (wave >= 10 && i % 6 === 1) type = "fork";
     if (wave >= 12 && i % 8 === 5) type = "regen";
-    if (wave >= 14 && i % 9 === 2) type = "jammer";
+    if (wave >= jammerWave && i % 9 === 2) type = "jammer";
     if (isSplitMap && wave >= 8 && i % 7 === 4) type = "shield";
     if (isSplitMap && wave >= 12 && i % 9 === 6) type = "jammer";
     if (isTriportMap && wave >= 7 && i % 5 === 1) type = "spark";
@@ -207,6 +417,7 @@ function buildWave(wave) {
 }
 
 function spawnEnemy(spawn) {
+  const modifierTotals = getRunModifierTotals();
   const template = enemyTypes[spawn.type];
   const path = paths[spawn.pathIndex || 0];
   const start = path[0];
@@ -220,8 +431,8 @@ function spawnEnemy(spawn) {
     progress: 0,
     maxHp: template.hp * spawn.hpScale,
     hp: template.hp * spawn.hpScale,
-    speed: template.speed * (1 + Math.min(0.24, state.wave * 0.012)),
-    reward: Math.round(template.reward * (1 + state.wave * 0.08) * activeMap.rewardScale),
+    speed: template.speed * (1 + Math.min(0.24, state.wave * 0.012)) * modifierTotals.speedMul,
+    reward: Math.round(template.reward * (1 + state.wave * 0.08) * activeMap.rewardScale * modifierTotals.rewardMul),
     radius: template.radius,
     color: template.color,
     armor: template.armor || 0,
@@ -245,6 +456,11 @@ function placeTower(col, row) {
   const type = towerTypes[state.selectedTowerType];
   if (!type) {
     showToast("เลือกทาวเวอร์ก่อนวาง");
+    return;
+  }
+
+  if (!isTowerAllowed(type.id)) {
+    showToast("Tower นี้ไม่อยู่ใน loadout");
     return;
   }
 
@@ -272,10 +488,12 @@ function placeTower(col, row) {
     spent: type.cost,
     branch: null,
     pulse: 0,
+    targetPriority: "first",
   };
 
   state.credits -= type.cost;
   state.towers.push(tower);
+  if (type.id === "cache") state.runStats.usedCache = true;
   state.selectedTower = null;
   popParticles(tower.x, tower.y, type.color, 14);
   showToast(`วาง ${type.name}`);
@@ -395,6 +613,7 @@ function enterGame() {
   if (shouldStartLevel) {
     state.mapIndex = state.menuSelectedIndex;
     state.gameStarted = true;
+    applyRunSetup();
     hideMenu();
     restart(`เข้าสู่ ${maps[state.mapIndex].name}`);
     showHint("first-run", "เริ่มต้น", "วาง tower ข้างเส้นทางก่อนกด Start Wave แล้วคลิก tower ที่วางเพื่ออัปเกรดหรือขาย", "towers");
@@ -415,7 +634,7 @@ function checkWaveState() {
     addLog(`Wave ${state.wave} จบ ได้โบนัส ${bonus} credits`);
     showToast(`Wave clear +${bonus}`);
 
-    if (state.wave >= MAX_WAVES) {
+    if (!state.endlessMode && state.wave >= getWaveCap()) {
       endGame(true);
     }
     updateHud();
@@ -429,6 +648,8 @@ function endGame(won) {
   state.won = won;
   state.waveActive = false;
   state.spawns = [];
+  if (state.dailyMode && won && state.dailyKey) markDailyPlayed(state.dailyKey);
+  evaluateRunAchievements(won);
   saveBestScore(activeMap.id, state.score);
   saveBestStars(activeMap.id, stars);
   state.menuSelectedIndex = state.mapIndex;
@@ -450,7 +671,7 @@ function restart(message = "เริ่มใหม่แล้ว", options = 
   state.lives = activeMap.lives;
   state.wave = 0;
   state.score = 0;
-  state.selectedTowerType = "firewall";
+  state.selectedTowerType = state.loadout[0] || "firewall";
   state.selectedTower = null;
   state.towers = [];
   state.enemies = [];
@@ -468,6 +689,9 @@ function restart(message = "เริ่มใหม่แล้ว", options = 
   state.waveBannerText = "";
   state.screenShake = 0;
   state.analytics = initAnalytics();
+  state.runStats = {
+    usedCache: false,
+  };
   hidePauseModal();
   hideResultModal();
   state.menuSelectedIndex = state.mapIndex;

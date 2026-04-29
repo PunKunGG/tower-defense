@@ -29,6 +29,16 @@
 
         <div class="menu-levels" id="menuLevelList" aria-label="Menu level picker"></div>
 
+        <div class="menu-options">
+          <label class="menu-toggle" for="endlessToggle">
+            <input id="endlessToggle" type="checkbox" />
+            <span>Endless Mode (wave infinite)</span>
+          </label>
+          <button class="menu-daily" id="dailyChallengeBtn" type="button">Daily Challenge</button>
+          <p class="menu-daily-meta" id="dailyMeta">Daily: ไม่ได้เปิดใช้งาน</p>
+          <div class="menu-loadout" id="menuLoadout" aria-label="Tower loadout"></div>
+        </div>
+
         <button class="menu-start" id="menuStartBtn" type="button">Start Game</button>
       </div>
     </section>
@@ -94,6 +104,19 @@
           <div class="selected-actions">
             <button id="upgradeBtn" type="button" disabled>อัปเกรด</button>
             <button id="sellBtn" type="button" disabled>ขาย</button>
+          </div>
+          <div class="targeting" id="targetingControls" hidden>
+            <p>Target Priority</p>
+            <div class="targeting-actions" id="targetingActions">
+              <button type="button" data-priority="first">First</button>
+              <button type="button" data-priority="last">Last</button>
+              <button type="button" data-priority="strong">Strong</button>
+              <button type="button" data-priority="fast">Fast</button>
+            </div>
+          </div>
+          <div class="preset-actions">
+            <button id="saveBuildBtn" type="button">Save Build</button>
+            <button id="loadBuildBtn" type="button">Load Build</button>
           </div>
         </div>
 
@@ -179,6 +202,25 @@
           <div class="result-insight-wide">
             <span>Leak Report</span>
             <strong id="resultLeakSummary">-</strong>
+          </div>
+        </div>
+        <div class="result-badges" id="resultBadges"></div>
+        <div class="result-advanced">
+          <div>
+            <span>Total Kills</span>
+            <strong id="resultTotalKills">0</strong>
+          </div>
+          <div>
+            <span>Total Shots</span>
+            <strong id="resultTotalShots">0</strong>
+          </div>
+          <div>
+            <span>Economy Gain</span>
+            <strong id="resultEconomy">0</strong>
+          </div>
+          <div>
+            <span>Run Modifiers</span>
+            <strong id="resultModifiers">None</strong>
           </div>
         </div>
         <div class="result-actions">

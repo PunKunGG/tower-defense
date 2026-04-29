@@ -18,6 +18,22 @@ function hintSeenKey(id) {
   return `byte-defense.hint.${id}`;
 }
 
+function achievementsKey() {
+  return "byte-defense.achievements";
+}
+
+function buildPresetKey(mapId) {
+  return `byte-defense.build.${mapId}`;
+}
+
+function loadoutKey() {
+  return "byte-defense.loadout";
+}
+
+function dailyPlayedKey(dayKey) {
+  return `byte-defense.daily-played.${dayKey}`;
+}
+
 // LocalStorage retrieval
 function getBestScore(mapId) {
   try {
@@ -71,6 +87,92 @@ function saveBestStars(mapId, stars) {
   } catch {
     // The game still works if localStorage is unavailable.
   }
+}
+
+function getJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+function setJson(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getUnlockedAchievements() {
+  return getJson(achievementsKey(), []);
+}
+
+function saveUnlockedAchievements(ids) {
+  return setJson(achievementsKey(), ids);
+}
+
+function loadBuildPreset(mapId) {
+  return getJson(buildPresetKey(mapId), null);
+}
+
+function saveBuildPreset(mapId, preset) {
+  return setJson(buildPresetKey(mapId), preset);
+}
+
+function getSavedLoadout() {
+  return getJson(loadoutKey(), null);
+}
+
+function saveLoadout(loadout) {
+  return setJson(loadoutKey(), loadout);
+}
+
+function markDailyPlayed(dayKey) {
+  try {
+    localStorage.setItem(dailyPlayedKey(dayKey), "1");
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
+function hasPlayedDaily(dayKey) {
+  try {
+    return localStorage.getItem(dailyPlayedKey(dayKey)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function getTodayKey() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function hashString(value) {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function seededRandom(seed) {
+  let stateSeed = seed || 1;
+  return () => {
+    stateSeed ^= stateSeed << 13;
+    stateSeed ^= stateSeed >>> 17;
+    stateSeed ^= stateSeed << 5;
+    return ((stateSeed >>> 0) % 1000000) / 1000000;
+  };
 }
 
 // Star calculations

@@ -104,6 +104,7 @@ function updateCacheTower(tower, now) {
     tower.lastEarn = now;
     state.credits += amount;
     state.score += amount;
+    state.analytics.economyGenerated += amount;
     tower.pulse = 1;
     state.floaters.push({
       x: tower.x,
@@ -143,15 +144,24 @@ function getJammerDebuff(tower) {
 }
 
 function acquireTarget(tower, range) {
+  const priority = tower.targetPriority || "first";
   let best = null;
-  let bestProgress = -1;
+  let bestValue = null;
 
   state.enemies.forEach((enemy) => {
     const distance = Math.hypot(enemy.x - tower.x, enemy.y - tower.y);
-    const progress = enemy.segment * CELL;
-    if (distance <= range && progress > bestProgress) {
+    if (distance > range) return;
+
+    const progress = enemy.segment * CELL + enemy.progress;
+    let candidate = progress;
+
+    if (priority === "last") candidate = -progress;
+    if (priority === "strong") candidate = enemy.hp;
+    if (priority === "fast") candidate = enemy.speed;
+
+    if (best === null || candidate > bestValue) {
       best = enemy;
-      bestProgress = progress;
+      bestValue = candidate;
     }
   });
 
@@ -160,6 +170,7 @@ function acquireTarget(tower, range) {
 
 function fireProjectile(tower, target, stats) {
   const type = towerTypes[tower.type];
+  state.analytics.towerShots[tower.type] = (state.analytics.towerShots[tower.type] || 0) + 1;
   state.projectiles.push({
     x: tower.x,
     y: tower.y,
@@ -256,6 +267,11 @@ function damageEnemy(enemy, amount, projectile = null) {
 
   const index = state.enemies.indexOf(enemy);
   if (index !== -1) state.enemies.splice(index, 1);
+
+  if (projectile?.towerType) {
+    state.analytics.towerKills[projectile.towerType] =
+      (state.analytics.towerKills[projectile.towerType] || 0) + 1;
+  }
 
   spawnSplitEnemies(enemy);
 
