@@ -817,6 +817,43 @@ h1 {
   text-align: center;
 }
 
+.result-insights {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.result-insights div {
+  min-height: 72px;
+  padding: 10px;
+  border: 1px solid rgba(93, 156, 165, 0.24);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.result-insights span,
+.result-insights small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.result-insights span {
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.result-insights strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+}
+
+.result-insight-wide {
+  grid-column: 1 / -1;
+}
+
 .result-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -941,6 +978,10 @@ h1 {
   }
 
   .result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .result-insights {
     grid-template-columns: 1fr;
   }
 

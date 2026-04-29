@@ -31,6 +31,7 @@
 - Shield: มี armor ลดดาเมจที่รับ
 - Fork Bomb: แตกเป็น Bug ตัวเล็กเมื่อถูกทำลาย
 - Regen: ฟื้นเลือดระหว่างเดิน
+- Jammer: มีออร่าทำให้ tower ยิงช้าลง
 - Kernel Panic: boss ทุก 5 waves
 
 ## Levels
@@ -39,12 +40,14 @@
 เมื่อเคลียร์ครบ 20 waves เกมจะให้ดาวตาม Core ที่เหลือ: 1 ดาวเมื่อผ่านด่าน, 2 ดาวเมื่อ Core เหลืออย่างน้อย 45%, และ 3 ดาวเมื่อ Core เหลืออย่างน้อย 75%
 
 - Training Circuit: ด่านง่าย เส้นทางเดียว ยาวกว่า ได้ credits และ core life มากขึ้น
-- Split Circuit: ด่านปกติ มี 2 ทางเข้าแล้วไปรวมกลางแมพ
-- Triport Breach: ด่านยาก มี 3 ทางเข้า ศัตรูหนาและเริ่มต้นด้วยทรัพยากรน้อยกว่า
+- Split Circuit: ด่านปกติ มี 2 ทางเข้า วิ่งขนานและรวมกันช่วงปลายทาง พร้อม wave แบบบีบสอง lane
+- Triport Breach: ด่านยาก มี 3 ทางเข้า บีบให้คุมหลาย lane พร้อมกัน มี wave burst และ escort หน้าบอส
 
 ## Wave preview
 
 แถบด้านขวาจะแสดง wave ถัดไปก่อนกดเริ่ม เช่นชนิดศัตรู จำนวนรวม และจำนวน lane ที่จะเกิดศัตรู เพื่อช่วยวางแผนก่อนใช้ credits
+
+ด่านหลังๆ จะมี Jammer และ anti-choke pattern (Shield/Regen/Jammer เกิดพร้อมหลาย lane) เพื่อลดการเล่นแบบกอง tower จุดเดียว
 
 ## Codex and hints
 
@@ -55,6 +58,10 @@
 ## Pause menu
 
 Press `P`, `Esc`, or the Pause button during a run to open the pause menu. From there the player can resume, restart the current level, open level select, or inspect the Codex without ending the run.
+
+## Result insights
+
+หน้าสรุปหลังจบด่านจะแสดงสถิติเพิ่ม: tower ที่ทำดาเมจรวมสูงสุด, peak credits ระหว่างด่าน, และ wave ที่ศัตรูหลุดเข้า Core มากที่สุด
 
 ## Custom icons
 

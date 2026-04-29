@@ -165,6 +165,22 @@
           </div>
         </div>
         <p class="result-note" id="resultNote"></p>
+        <div class="result-insights">
+          <div>
+            <span>Top Damage Tower</span>
+            <strong id="resultTopTower">-</strong>
+            <small id="resultTopDamage">0</small>
+          </div>
+          <div>
+            <span>Peak Credits</span>
+            <strong id="resultPeakCredits">0</strong>
+            <small>max economy</small>
+          </div>
+          <div class="result-insight-wide">
+            <span>Leak Report</span>
+            <strong id="resultLeakSummary">-</strong>
+          </div>
+        </div>
         <div class="result-actions">
           <button id="resultReplayBtn" type="button">Replay</button>
           <button id="resultMenuBtn" type="button">Level Select</button>
@@ -172,6 +188,11 @@
       </div>
     </section>
 
+    <script src="constants.js"></script>
+    <script src="utils.js"></script>
+    <script src="ui.js"></script>
+    <script src="gameplay.js"></script>
+    <script src="rendering.js"></script>
     <script src="game.js"></script>
   </body>
 </html>
