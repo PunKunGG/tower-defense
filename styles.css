@@ -563,6 +563,74 @@ h1 {
   padding: 10px;
 }
 
+.pause-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 28;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(3, 8, 10, 0.68);
+}
+
+.pause-modal[hidden] {
+  display: none;
+}
+
+.pause-panel {
+  width: min(480px, 100%);
+  padding: 22px;
+  border: 1px solid rgba(93, 156, 165, 0.4);
+  border-radius: 8px;
+  background: rgba(13, 24, 29, 0.98);
+  box-shadow: 0 28px 90px var(--shadow);
+}
+
+#pauseKicker,
+#pauseTitle,
+#pauseMeta {
+  text-align: center;
+}
+
+#pauseKicker {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+#pauseTitle {
+  margin-top: 6px;
+  font-size: clamp(28px, 6vw, 40px);
+  line-height: 1;
+}
+
+#pauseMeta {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.pause-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+#pauseResumeBtn {
+  border-color: rgba(55, 227, 162, 0.7);
+  background: linear-gradient(160deg, #1d654d, #17424a);
+}
+
+#pauseCodexBtn,
+#pauseLevelBtn {
+  border-color: rgba(70, 167, 255, 0.5);
+  background: #142633;
+}
+
 .codex-modal {
   position: fixed;
   inset: 0;
@@ -866,6 +934,10 @@ h1 {
   .tower-icon {
     width: 36px;
     height: 36px;
+  }
+
+  .pause-actions {
+    grid-template-columns: 1fr;
   }
 
   .result-grid {

@@ -52,6 +52,10 @@
 - Hint จะโผล่ครั้งแรกเมื่อผู้เล่นเจอระบบสำคัญ เช่น boss, Shield, Fork Bomb, Regen หรือการเลือกสาย Lv.3
 - Hint ที่กด `OK` แล้วจะไม่โผล่ซ้ำใน browser เดิม
 
+## Pause menu
+
+Press `P`, `Esc`, or the Pause button during a run to open the pause menu. From there the player can resume, restart the current level, open level select, or inspect the Codex without ending the run.
+
 ## Custom icons
 
 วางรูป tower picker ไว้ที่ `assets/towers` ตามชื่อนี้:

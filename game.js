@@ -17,6 +17,14 @@ const ui = {
   towerList: document.querySelector("#towerList"),
   wavePreview: document.querySelector("#wavePreview"),
   codexBtn: document.querySelector("#codexBtn"),
+  pauseModal: document.querySelector("#pauseModal"),
+  pauseKicker: document.querySelector("#pauseKicker"),
+  pauseTitle: document.querySelector("#pauseTitle"),
+  pauseMeta: document.querySelector("#pauseMeta"),
+  pauseResumeBtn: document.querySelector("#pauseResumeBtn"),
+  pauseRestartBtn: document.querySelector("#pauseRestartBtn"),
+  pauseLevelBtn: document.querySelector("#pauseLevelBtn"),
+  pauseCodexBtn: document.querySelector("#pauseCodexBtn"),
   codexModal: document.querySelector("#codexModal"),
   codexCloseBtn: document.querySelector("#codexCloseBtn"),
   codexTabs: document.querySelector("#codexTabs"),
@@ -632,6 +640,40 @@ function closeCodex() {
   ui.codexModal.hidden = true;
 }
 
+function hidePauseModal() {
+  ui.pauseModal.hidden = true;
+}
+
+function showPauseModal() {
+  if (state.menuOpen || state.gameOver) return;
+
+  closeCodex();
+  hideResultModal();
+  state.paused = true;
+  ui.pauseTitle.textContent = "Pause Menu";
+  ui.pauseMeta.textContent = `${activeMap.name} - Wave ${state.wave}/${MAX_WAVES} - Score ${formatNumber(state.score)}`;
+  ui.pauseModal.hidden = false;
+  updateHud();
+}
+
+function resumeGame() {
+  if (state.gameOver) return;
+
+  hidePauseModal();
+  state.paused = false;
+  updateHud();
+}
+
+function togglePauseMenu() {
+  if (state.menuOpen || state.gameOver) return;
+
+  if (ui.pauseModal.hidden) {
+    showPauseModal();
+  } else {
+    resumeGame();
+  }
+}
+
 function hideResultModal() {
   ui.resultModal.hidden = true;
 }
@@ -641,6 +683,7 @@ function showResultModal(won, stars) {
   const coreLeft = Math.max(0, state.lives);
   const isNewBest = state.score >= bestScore && state.score > 0;
 
+  hidePauseModal();
   ui.resultKicker.textContent = won ? "Level Complete" : "Core Breached";
   ui.resultTitle.textContent = won ? "Victory" : "Defeat";
   ui.resultStars.textContent = renderStars(stars);
@@ -991,6 +1034,7 @@ function updateSelectionPanel() {
 
 function startWave() {
   if (state.menuOpen) return;
+  if (state.paused) return;
   if (state.waveActive || state.gameOver || state.wave >= MAX_WAVES) return;
 
   state.wave += 1;
@@ -1024,6 +1068,7 @@ function showMenu() {
   state.menuOpen = true;
   state.menuSelectedIndex = state.mapIndex;
   state.paused = true;
+  hidePauseModal();
   hideResultModal();
   ui.menuScreen.classList.remove("is-hidden");
   ui.menuScreen.setAttribute("aria-hidden", "false");
@@ -1034,6 +1079,7 @@ function showMenu() {
 
 function hideMenu() {
   state.menuOpen = false;
+  hidePauseModal();
   hideResultModal();
   ui.menuScreen.classList.add("is-hidden");
   ui.menuScreen.setAttribute("aria-hidden", "true");
@@ -1638,6 +1684,7 @@ function restart(message = "เริ่มใหม่แล้ว", options = 
   state.speed = 1;
   state.gameOver = false;
   state.won = false;
+  hidePauseModal();
   hideResultModal();
   state.menuSelectedIndex = state.mapIndex;
   buildMenuLevelCards();
@@ -2047,6 +2094,19 @@ ui.branchBBtn.addEventListener("click", () => {
   chooseBranch(towerBranches[tower.type][1].id);
 });
 ui.codexBtn.addEventListener("click", () => openCodex("towers"));
+ui.pauseResumeBtn.addEventListener("click", resumeGame);
+ui.pauseRestartBtn.addEventListener("click", () => {
+  hidePauseModal();
+  restart("Restarted level");
+});
+ui.pauseLevelBtn.addEventListener("click", () => {
+  hidePauseModal();
+  showMenu();
+});
+ui.pauseCodexBtn.addEventListener("click", () => openCodex("towers"));
+ui.pauseModal.addEventListener("click", (event) => {
+  if (event.target === ui.pauseModal) resumeGame();
+});
 ui.codexCloseBtn.addEventListener("click", closeCodex);
 ui.codexModal.addEventListener("click", (event) => {
   if (event.target === ui.codexModal) closeCodex();
@@ -2079,9 +2139,7 @@ ui.startWaveBtn.addEventListener("click", () => {
   startWave();
 });
 ui.pauseBtn.addEventListener("click", () => {
-  if (state.gameOver) return;
-  state.paused = !state.paused;
-  updateHud();
+  togglePauseMenu();
 });
 ui.speedBtn.addEventListener("click", () => {
   state.speed = state.speed === 1 ? 2 : state.speed === 2 ? 3 : 1;
@@ -2123,7 +2181,24 @@ window.addEventListener("keydown", (event) => {
       closeCodex();
       return;
     }
-    showMenu();
+    if (!ui.pauseModal.hidden) {
+      resumeGame();
+      return;
+    }
+    if (state.gameOver) {
+      showMenu();
+      return;
+    }
+    showPauseModal();
+    return;
+  }
+
+  if (!ui.pauseModal.hidden || !ui.codexModal.hidden) {
+    if (event.key === " ") event.preventDefault();
+    if (event.key.toLowerCase() === "p" && ui.codexModal.hidden) {
+      event.preventDefault();
+      resumeGame();
+    }
     return;
   }
 
@@ -2133,8 +2208,7 @@ window.addEventListener("keydown", (event) => {
     else startWave();
   }
   if (event.key.toLowerCase() === "p") {
-    state.paused = !state.paused;
-    updateHud();
+    togglePauseMenu();
   }
   const towerKeys = {
     1: "firewall",

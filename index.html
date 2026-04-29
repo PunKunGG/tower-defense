@@ -109,6 +109,20 @@
       </aside>
     </main>
 
+    <section class="pause-modal" id="pauseModal" hidden aria-label="Pause menu">
+      <div class="pause-panel" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+        <p id="pauseKicker">Game Paused</p>
+        <h2 id="pauseTitle">Pause Menu</h2>
+        <p id="pauseMeta">Take a breath, then get back to defending the core.</p>
+        <div class="pause-actions">
+          <button id="pauseResumeBtn" type="button">Resume</button>
+          <button id="pauseRestartBtn" type="button">Restart</button>
+          <button id="pauseLevelBtn" type="button">Level Select</button>
+          <button id="pauseCodexBtn" type="button">Codex</button>
+        </div>
+      </div>
+    </section>
+
     <section class="codex-modal" id="codexModal" hidden aria-label="Game codex">
       <div class="codex-panel" role="dialog" aria-modal="true" aria-labelledby="codexTitle">
         <header class="codex-header">
