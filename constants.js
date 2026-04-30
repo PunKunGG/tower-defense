@@ -20,6 +20,7 @@ const ui = {
   menuLogoFallback: document.querySelector("#menuLogoFallback"),
   towerList: document.querySelector("#towerList"),
   wavePreview: document.querySelector("#wavePreview"),
+  objectivePanel: document.querySelector("#objectivePanel"),
   codexBtn: document.querySelector("#codexBtn"),
   pauseModal: document.querySelector("#pauseModal"),
   pauseKicker: document.querySelector("#pauseKicker"),
@@ -60,6 +61,7 @@ const ui = {
   hintDismissBtn: document.querySelector("#hintDismissBtn"),
   brandLogo: document.querySelector("#brandLogo"),
   brandLogoFallback: document.querySelector("#brandLogoFallback"),
+  hudTabs: document.querySelector("#hudTabs"),
   selectedTitle: document.querySelector("#selectedTitle"),
   selectedText: document.querySelector("#selectedText"),
   selectedPanel: document.querySelector("#selectedPanel"),
@@ -121,6 +123,39 @@ const RUN_MODIFIER_POOL = [
     name: "Jam Storm",
     desc: "Jammer appears 3 waves earlier",
     jammerWaveShift: -3,
+  },
+];
+
+const MAP_AFFIX_POOL = [
+  {
+    id: "spark_surge",
+    name: "Spark Surge",
+    desc: "Spark enemies +25% speed",
+    apply: (state) => { state.runAffix = this; },
+  },
+  {
+    id: "cache_drain",
+    name: "Cache Drain",
+    desc: "Cache tower income -20%",
+    apply: (state) => { state.runAffix = this; },
+  },
+  {
+    id: "enemy_swarm",
+    name: "Enemy Swarm",
+    desc: "Each wave +2 enemies",
+    apply: (state) => { state.runAffix = this; },
+  },
+  {
+    id: "crystal_armor",
+    name: "Crystal Armor",
+    desc: "All enemies +3 armor",
+    apply: (state) => { state.runAffix = this; },
+  },
+  {
+    id: "regen_power",
+    name: "Regen Power",
+    desc: "Regen enemies +40% HP regen rate",
+    apply: (state) => { state.runAffix = this; },
   },
 ];
 

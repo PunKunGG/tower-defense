@@ -62,6 +62,20 @@ function closeCodex() {
   ui.codexModal.hidden = true;
 }
 
+function setHudTab(tab = "overview") {
+  if (!ui.hudTabs) return;
+  const isMobile = window.matchMedia("(max-width: 620px)").matches;
+  state.hudTab = tab;
+
+  ui.hudTabs.querySelectorAll("button[data-hud-tab]").forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.hudTab === tab));
+  });
+
+  document.querySelectorAll(".hud-section[data-hud-tab]").forEach((section) => {
+    section.classList.toggle("is-active", section.dataset.hudTab === tab || !isMobile);
+  });
+}
+
 function enemyAbility(typeId, enemy) {
   if (typeId === "shield") return `Armor ${enemy.armor}: ลดดาเมจที่รับ ยกเว้นกระสุนทะลุ armor`;
   if (typeId === "fork") return `Split: แตกเป็น ${enemy.split} ${enemyTypes[enemy.splitType].name} เมื่อตาย`;
@@ -318,6 +332,9 @@ function buildTowerCards() {
 
   Object.values(towerTypes).forEach((tower) => {
     if (!state.loadout.includes(tower.id)) return;
+    const mastery = state.towerMastery?.[tower.id] || 0;
+    const masteryLevel = mastery < 50 ? 0 : mastery < 200 ? 1 : mastery < 500 ? 2 : 3;
+    const masteryBadge = masteryLevel > 0 ? `<span class="tower-mastery" title="Mastery Lv.${masteryLevel}">✦${masteryLevel}</span>` : "";
     const button = document.createElement("button");
     button.className = "tower";
     button.type = "button";
@@ -327,6 +344,7 @@ function buildTowerCards() {
       <span class="tower-icon" style="background:${tower.color}">
         <img class="tower-icon-image" src="${tower.image}" alt="" />
         <span class="tower-icon-key">${tower.key}</span>
+        ${masteryBadge}
       </span>
       <span>
         <h2>${tower.name}</h2>
@@ -347,6 +365,7 @@ function buildTowerCards() {
       state.selectedTowerType =
         state.selectedTowerType === tower.id && !state.selectedTower ? null : tower.id;
       state.selectedTower = null;
+      setHudTab("towers");
       buildTowerCards();
       updateSelectionPanel();
       showToast(state.selectedTowerType ? `เลือก ${tower.name}` : "ยกเลิกการเลือกทาวเวอร์");
@@ -370,6 +389,51 @@ function updateHud() {
   ui.startWaveBtn.disabled =
     state.menuOpen || state.waveActive || (!state.gameOver && state.wave >= getWaveCap());
   updateWavePreview();
+  updateObjectivePanel();
+}
+
+function updateObjectivePanel() {
+  const current = state.objectives?.active;
+  const completed = state.objectives?.completed?.length || 0;
+  const total = state.objectives?.total || 0;
+  const rerollBtn = document.querySelector("#objectiveRerollBtn");
+
+  if (!ui.objectivePanel) return;
+  ui.objectivePanel.classList.remove("rare-active");
+  ui.objectivePanel.classList.remove("legendary-active");
+  
+  // Update reroll button visibility and state
+  if (rerollBtn) {
+    rerollBtn.hidden = !current || state.objectives.rerollUsed;
+    rerollBtn.disabled = state.objectives.rerollUsed || !current;
+  }
+  
+  if (!current) {
+    ui.objectivePanel.innerHTML = `
+      <h3>Mini Objective</h3>
+      <strong>ไม่มี objective ที่กำลังทำ</strong>
+      <span class="objective-progress">Completed ${completed}/${total}</span>
+    `;
+    return;
+  }
+
+  const progress = Math.min(current.target, current.progress || 0);
+  const rewardText = `${formatNumber(current.rewardCredits)} credits / +${formatNumber(current.rewardScore)} score`;
+  const rarityLabel =
+    current.rarity === "legendary"
+      ? "Legendary Objective"
+      : current.rarity === "rare"
+        ? "Rare Objective"
+        : "Mini Objective";
+  if (current.rarity === "legendary") ui.objectivePanel.classList.add("legendary-active");
+  if (current.rarity === "rare") ui.objectivePanel.classList.add("rare-active");
+  ui.objectivePanel.innerHTML = `
+    <h3>${rarityLabel}</h3>
+    <strong>${current.label}</strong>
+    <span class="objective-progress">${formatNumber(progress)}/${formatNumber(current.target)}</span>
+    <span class="objective-meta objective-reward">Reward: ${rewardText}</span>
+    <span class="objective-meta objective-completed">Completed ${completed}/${total}</span>
+  `;
 }
 
 // Wave preview
@@ -443,13 +507,16 @@ function updateSelectionPanel() {
     const type = towerTypes[selected.type];
     const stats = towerStats(selected);
     const branch = getTowerBranch(selected);
+    const mastery = state.towerMastery?.[selected.type] || 0;
+    const masteryLevel = mastery < 50 ? 0 : mastery < 200 ? 1 : mastery < 500 ? 2 : 3;
+    const masteryBonus = masteryLevel > 0 ? ` +${masteryLevel}% Mastery` : "";
     const upgradeText = selected.level >= 3 ? "เต็มเลเวลแล้ว" : `อัปเกรด ${upgradeCost(selected)} credits`;
     const branchText = branch ? ` / ${branch.name}` : "";
     const kills = selected.kills || 0;
     const totalDmg = Math.round(selected.totalDamage || 0);
     const statsLine = selected.type === "cache"
       ? `${upgradeText}${branchText}. สร้าง credits ทุกไม่กี่วินาที ขายได้ ${sellValue(selected)}.`
-      : `${upgradeText}${branchText}. Damage ${Math.round(stats.damage)}, Range ${Math.round(stats.range)}, ขายได้ ${sellValue(selected)}.`;
+      : `${upgradeText}${branchText}. Damage ${Math.round(stats.damage)}${masteryBonus}, Range ${Math.round(stats.range)}, ขายได้ ${sellValue(selected)}.`;
     const combatLine = selected.type !== "cache" ? ` Kills ${formatNumber(kills)} / Total DMG ${formatNumber(totalDmg)}` : "";
     ui.selectedTitle.textContent = `${type.name} Lv.${selected.level}`;
     ui.selectedText.textContent = statsLine + combatLine;

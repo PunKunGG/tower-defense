@@ -283,6 +283,10 @@ function damageEnemy(enemy, amount, projectile = null) {
   }
 
   spawnSplitEnemies(enemy);
+  updateMiniObjectives("enemy_kill", {
+    enemyType: enemy.type,
+    elite: !!enemy.elite,
+  });
 
   state.credits += enemy.reward;
   state.score += enemy.reward * 10;

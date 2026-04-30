@@ -71,7 +71,13 @@
           </div>
         </div>
 
-        <div class="stats" aria-label="Game stats">
+        <div class="hud-tabs" id="hudTabs" aria-label="HUD tabs">
+          <button type="button" data-hud-tab="overview" aria-pressed="true">Overview</button>
+          <button type="button" data-hud-tab="towers" aria-pressed="false">Towers</button>
+          <button type="button" data-hud-tab="manage" aria-pressed="false">Manage</button>
+        </div>
+
+        <div class="stats hud-section" data-hud-tab="overview" aria-label="Game stats">
           <div>
             <span>Credits</span>
             <strong id="credits">0</strong>
@@ -90,11 +96,15 @@
           </div>
         </div>
 
-        <div class="wave-preview" id="wavePreview" aria-live="polite"></div>
+        <div class="wave-preview hud-section" data-hud-tab="overview" id="wavePreview" aria-live="polite"></div>
 
-        <div class="tower-list" id="towerList" aria-label="Tower picker"></div>
+        <div class="objective-panel hud-section" data-hud-tab="overview" id="objectivePanel" aria-live="polite">
+          <button class="objective-reroll" id="objectiveRerollBtn" type="button" hidden>Reroll (1x)</button>
+        </div>
 
-        <div class="selected" id="selectedPanel">
+        <div class="tower-list hud-section" data-hud-tab="towers" id="towerList" aria-label="Tower picker"></div>
+
+        <div class="selected hud-section" data-hud-tab="manage" id="selectedPanel">
           <h2 id="selectedTitle">เลือกทาวเวอร์</h2>
           <p id="selectedText">แตะทาวเวอร์ด้านบน แล้วกดช่องว่างบนกระดานเพื่อวาง</p>
           <div class="branch-actions" id="branchActions" hidden>
@@ -120,15 +130,15 @@
           </div>
         </div>
 
-        <div class="controls">
+        <div class="controls hud-section" data-hud-tab="manage">
           <button id="startWaveBtn" type="button">เริ่ม</button>
           <button id="pauseBtn" type="button" aria-pressed="false">หยุดชั่วคราว</button>
           <button id="speedBtn" type="button" aria-pressed="false">1x</button>
         </div>
 
-        <button class="codex-open" id="codexBtn" type="button">Codex</button>
+        <button class="codex-open hud-section" data-hud-tab="manage" id="codexBtn" type="button">Codex</button>
 
-        <div class="log" id="log" aria-live="polite"></div>
+        <div class="log hud-section" data-hud-tab="manage" id="log" aria-live="polite"></div>
       </aside>
     </main>
 
