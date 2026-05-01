@@ -84,11 +84,243 @@ function applyRunSetup() {
     state.runModifiers = daily.modifiers;
     state.loadout = daily.loadout;
     state.endlessMode = false;
+    state.runAffix = null;
     return;
   }
 
   state.runSeed = Date.now();
   state.runModifiers = pickRunModifiers(state.runSeed, 1);
+  
+  // Pick random map affix
+  const affixPool = [...MAP_AFFIX_POOL];
+  if (affixPool.length > 0) {
+    const affixIndex = Math.floor(seededRandom(state.runSeed ^ 0xDEADBEEF)() * affixPool.length);
+    state.runAffix = affixPool[affixIndex];
+    addLog(`Map Affix: ${state.runAffix.name} - ${state.runAffix.desc}`);
+  } else {
+    state.runAffix = null;
+  }
+}
+
+function objectiveBasePool() {
+  return [
+    {
+      id: "kill_spark",
+      label: "กำจัด Spark",
+      rarity: "normal",
+      target: 12,
+      rewardCredits: 40,
+      rewardScore: 900,
+      matches(eventType, payload) {
+        return eventType === "enemy_kill" && payload.enemyType === "spark";
+      },
+    },
+    {
+      id: "kill_shield",
+      label: "กำจัด Shield",
+      rarity: "normal",
+      target: 10,
+      rewardCredits: 45,
+      rewardScore: 1000,
+      matches(eventType, payload) {
+        return eventType === "enemy_kill" && payload.enemyType === "shield";
+      },
+    },
+    {
+      id: "kill_elite",
+      label: "กำจัด Elite",
+      rarity: "normal",
+      target: 8,
+      rewardCredits: 55,
+      rewardScore: 1200,
+      matches(eventType, payload) {
+        return eventType === "enemy_kill" && !!payload.elite;
+      },
+    },
+    {
+      id: "clear_waves",
+      label: "เคลียร์ Wave ให้ไว",
+      rarity: "normal",
+      target: 4,
+      rewardCredits: 50,
+      rewardScore: 1100,
+      matches(eventType) {
+        return eventType === "wave_clear";
+      },
+    },
+    {
+      id: "no_leak_streak",
+      label: "ห้ามมี Leak ต่อเนื่อง",
+      rarity: "normal",
+      target: 3,
+      rewardCredits: 60,
+      rewardScore: 1400,
+      matches(eventType) {
+        return eventType === "wave_clear";
+      },
+      usesStreak: true,
+    },
+  ];
+}
+
+function objectiveRarePool() {
+  return [
+    {
+      id: "boss_hunter",
+      label: "RARE: Boss Hunter",
+      rarity: "rare",
+      target: 2,
+      rewardCredits: 110,
+      rewardScore: 2800,
+      matches(eventType, payload) {
+        return eventType === "enemy_kill" && payload.enemyType === "boss";
+      },
+    },
+    {
+      id: "jammer_breaker",
+      label: "RARE: Jammer Breaker",
+      rarity: "rare",
+      target: 8,
+      rewardCredits: 105,
+      rewardScore: 2400,
+      matches(eventType, payload) {
+        return eventType === "enemy_kill" && payload.enemyType === "jammer";
+      },
+    },
+    {
+      id: "perfect_chain",
+      label: "RARE: Perfect Chain",
+      rarity: "rare",
+      target: 5,
+      rewardCredits: 120,
+      rewardScore: 3200,
+      matches(eventType) {
+        return eventType === "wave_clear";
+      },
+      usesStreak: true,
+    },
+  ];
+}
+
+function objectiveLegendaryPool() {
+  return [
+    {
+      id: "legendary_boss_slayer",
+      label: "LEGENDARY: Boss Slayer",
+      rarity: "legendary",
+      target: 4,
+      rewardCredits: 220,
+      rewardScore: 5200,
+      matches(eventType, payload) {
+        return eventType === "enemy_kill" && payload.enemyType === "boss";
+      },
+    },
+    {
+      id: "legendary_elite_purge",
+      label: "LEGENDARY: Elite Purge",
+      rarity: "legendary",
+      target: 18,
+      rewardCredits: 210,
+      rewardScore: 4800,
+      matches(eventType, payload) {
+        return eventType === "enemy_kill" && !!payload.elite;
+      },
+    },
+    {
+      id: "legendary_perfect_core",
+      label: "LEGENDARY: Perfect Core",
+      rarity: "legendary",
+      target: 8,
+      rewardCredits: 240,
+      rewardScore: 6000,
+      matches(eventType) {
+        return eventType === "wave_clear";
+      },
+      usesStreak: true,
+    },
+  ];
+}
+
+function createRunObjectives() {
+  const rng = seededRandom((state.runSeed || Date.now()) ^ hashString(`objective:${activeMap.id}`));
+  const pool = objectiveBasePool().map((item) => ({ ...item, progress: 0 }));
+  const rarePool = objectiveRarePool().map((item) => ({ ...item, progress: 0 }));
+  const legendaryPool = objectiveLegendaryPool().map((item) => ({ ...item, progress: 0 }));
+  const picks = [];
+  const legendaryChance = 0.08;
+  const rareChance = 0.35;
+
+  if (legendaryPool.length > 0 && rng() < legendaryChance) {
+    const legendaryIndex = Math.floor(rng() * legendaryPool.length);
+    picks.push(legendaryPool.splice(legendaryIndex, 1)[0]);
+  } else if (rarePool.length > 0 && rng() < rareChance) {
+    const rareIndex = Math.floor(rng() * rarePool.length);
+    picks.push(rarePool.splice(rareIndex, 1)[0]);
+  }
+
+  while (pool.length > 0 && picks.length < state.objectives.total) {
+    const index = Math.floor(rng() * pool.length);
+    picks.push(pool.splice(index, 1)[0]);
+  }
+
+  state.objectives.queue = picks;
+  state.objectives.completed = [];
+  state.objectives.active = null;
+  state.objectives.noLeakStreak = 0;
+  activateNextObjective();
+}
+
+function activateNextObjective() {
+  const next = state.objectives.queue.shift() || null;
+  state.objectives.active = next;
+  if (!next) {
+    addLog("Mini Objective: ทำครบทุกภารกิจแล้ว");
+    updateHud();
+    return;
+  }
+
+  addLog(`Mini Objective: ${next.label} (${next.target})`);
+  showToast(`Objective: ${next.label}`);
+  updateHud();
+}
+
+function completeObjective(objective) {
+  state.objectives.completed.push(objective.id);
+  state.credits += objective.rewardCredits;
+  state.score += objective.rewardScore;
+  const rewardColor =
+    objective.rarity === "legendary" ? "#8ce8ff" : objective.rarity === "rare" ? "#ffd166" : "#37e3a2";
+  const rewardBurst = objective.rarity === "legendary" ? 30 : objective.rarity === "rare" ? 22 : 14;
+  popParticles(canvas.width * 0.82, 54, rewardColor, rewardBurst);
+  addLog(
+    `Objective สำเร็จ${objective.rarity === "legendary" ? " [LEGENDARY]" : objective.rarity === "rare" ? " [RARE]" : ""}: ${objective.label} (+${objective.rewardCredits} credits / +${objective.rewardScore} score)`,
+  );
+  showToast(
+    `${objective.rarity === "legendary" ? "LEGENDARY" : objective.rarity === "rare" ? "RARE" : "Objective"} complete +${objective.rewardCredits} credits`,
+  );
+  activateNextObjective();
+  updateHud();
+}
+
+function updateMiniObjectives(eventType, payload = {}) {
+  const objective = state.objectives?.active;
+  if (!objective || state.gameOver) return;
+
+  if (
+    (objective.id === "no_leak_streak" || objective.id === "perfect_chain" || objective.id === "legendary_perfect_core") &&
+    eventType === "wave_clear"
+  ) {
+    state.objectives.noLeakStreak = payload.noLeak ? state.objectives.noLeakStreak + 1 : 0;
+    objective.progress = state.objectives.noLeakStreak;
+    if (objective.progress >= objective.target) completeObjective(objective);
+    else updateHud();
+    return;
+  }
+
+  if (!objective.matches(eventType, payload)) return;
+  objective.progress += 1;
+  if (objective.progress >= objective.target) completeObjective(objective);
+  else updateHud();
 }
 
 function isTowerAllowed(towerType) {
@@ -105,6 +337,7 @@ function evaluateRunAchievements(won) {
   if (state.analytics.leakCount === 0) recordAchievement("core_guardian");
   if (won && !state.runStats.usedCache) recordAchievement("no_cache");
   if (won && activeMap.id === "triport") recordAchievement("triport_winner");
+  if (won && activeMap.id === "maze") recordAchievement("maze_winner");
   if (won && state.dailyMode) recordAchievement("daily_clear");
   if (state.endlessMode && state.wave >= 25) recordAchievement("endless_25");
 }
@@ -197,6 +430,8 @@ function loadCurrentBuildPreset() {
       branch: spec.level >= 3 ? spec.branch || null : null,
       pulse: 1,
       targetPriority: spec.targetPriority || "first",
+      kills: 0,
+      totalDamage: 0,
     });
     if (spec.type === "cache") state.runStats.usedCache = true;
   });
@@ -219,9 +454,13 @@ function setSelectedTowerPriority(priority) {
 function towerStats(tower) {
   const type = towerTypes[tower.type];
   const levelScale = 1 + (tower.level - 1) * 0.42;
-  const stats = {
+  const mastery = state.towerMastery?.[tower.type] || 0;
+  const masteryLevel = mastery < 50 ? 0 : mastery < 200 ? 1 : mastery < 500 ? 2 : 3;
+  const masteryBonus = 1 + masteryLevel * 0.01;
+  
+  let stats = {
     range: type.range + (tower.level - 1) * 13,
-    damage: type.damage * levelScale,
+    damage: type.damage * levelScale * masteryBonus,
     cooldown: Math.max(150, type.cooldown * (1 - (tower.level - 1) * 0.12)),
     splash: type.splash ? type.splash + (tower.level - 1) * 12 : 0,
     slow: type.slow ? Math.max(0.25, type.slow - (tower.level - 1) * 0.06) : 0,
@@ -230,6 +469,12 @@ function towerStats(tower) {
     dotDamage: 0,
     auraRange: 0,
   };
+
+  // Apply cache income penalty from affix
+  let cacheIncomeMultiplier = 1;
+  if (tower.type === "cache" && state.runAffix?.id === "cache_drain") {
+    cacheIncomeMultiplier = 0.8;
+  }
 
   if (tower.branch === "rapid") {
     stats.cooldown *= 0.62;
@@ -326,14 +571,22 @@ function buildWave(wave) {
   const spawns = [];
   const laneCount = paths.length;
   const modifierTotals = getRunModifierTotals();
-  const count = Math.max(5, 7 + wave * 2 + activeMap.countBonus + modifierTotals.countBonus);
-  const hpScale = (1 + wave * 0.16) * activeMap.hpScale * modifierTotals.hpMul;
+  let count = Math.max(5, 7 + wave * 2 + activeMap.countBonus + modifierTotals.countBonus);
+  let hpScale = (1 + wave * 0.16) * activeMap.hpScale * modifierTotals.hpMul;
+  
+  // Apply map affix effects
+  const affix = state.runAffix;
+  if (affix?.id === "enemy_swarm") count += 2;
+  if (affix?.id === "crystal_armor") hpScale *= 1.05; // Extra armor gets applied to enemy
+  if (affix?.id === "regen_power") hpScale *= 1.08; // Regen boost
+  
   const gap = Math.max(220, 760 - wave * 18 + activeMap.gapBonus);
   const isSplitMap = activeMap.id === "split";
   const isTriportMap = activeMap.id === "triport";
-  const laneOffsetBase = isTriportMap ? 80 : isSplitMap ? 110 : 180;
-  const syncEvery = isTriportMap ? 3 : isSplitMap ? 4 : 0;
-  const mapPressureBoost = isTriportMap ? 0.08 : isSplitMap ? 0.04 : 0;
+  const isMazeMap = activeMap.id === "maze";
+  const laneOffsetBase = isMazeMap ? 55 : isTriportMap ? 80 : isSplitMap ? 110 : 180;
+  const syncEvery = isMazeMap ? 4 : isTriportMap ? 3 : isSplitMap ? 4 : 0;
+  const mapPressureBoost = isMazeMap ? 0.12 : isTriportMap ? 0.08 : isSplitMap ? 0.04 : 0;
   let at = 0;
 
   const jammerWave = 14 + modifierTotals.jammerWaveShift;
@@ -351,10 +604,20 @@ function buildWave(wave) {
     if (isTriportMap && wave >= 7 && i % 5 === 1) type = "spark";
     if (isTriportMap && wave >= 11 && i % 7 === 4) type = "shield";
     if (isTriportMap && wave >= 10 && i % 6 === 2) type = "jammer";
+    if (isMazeMap && wave >= 5 && i % 4 === 1) type = "spark";
+    if (isMazeMap && wave >= 7 && i % 5 === 3) type = "shield";
+    if (isMazeMap && wave >= 9 && i % 6 === 2) type = "fork";
+    if (isMazeMap && wave >= 11 && i % 7 === 5) type = "regen";
+    if (isMazeMap && wave >= 12 && i % 8 === 4) type = "jammer";
     const pathIndex = i % laneCount;
     const pressureScale = 1 + Math.floor(wave / 4) * mapPressureBoost;
     const spawnAt = at + pathIndex * laneOffsetBase;
-    spawns.push({ at: spawnAt, type, hpScale: hpScale * pressureScale, pathIndex });
+    let eliteChance = 0.13;
+    if (state.runAffix?.id === "spark_surge" && type === "spark") {
+      eliteChance = 0.18; // More elite sparks with affix
+    }
+    const elite = type !== "boss" && Math.random() < eliteChance;
+    spawns.push({ at: spawnAt, type, hpScale: hpScale * pressureScale, pathIndex, elite });
 
     if (laneCount > 1 && syncEvery && wave >= 5 && i % syncEvery === syncEvery - 1) {
       const burstType = wave >= 12 ? "fork" : wave >= 8 ? "worm" : "bug";
@@ -421,6 +684,22 @@ function spawnEnemy(spawn) {
   const template = enemyTypes[spawn.type];
   const path = paths[spawn.pathIndex || 0];
   const start = path[0];
+  const affix = state.runAffix;
+  let speed = template.speed * (1 + Math.min(0.24, state.wave * 0.012)) * modifierTotals.speedMul;
+  let armor = template.armor || 0;
+  let regen = template.regen || 0;
+  
+  // Apply affix effects
+  if (affix?.id === "spark_surge" && spawn.type === "spark") {
+    speed *= 1.25;
+  }
+  if (affix?.id === "crystal_armor") {
+    armor += 3;
+  }
+  if (affix?.id === "regen_power" && spawn.type === "regen") {
+    regen *= 1.4;
+  }
+  
   const enemy = {
     type: spawn.type,
     name: template.name,
@@ -431,12 +710,12 @@ function spawnEnemy(spawn) {
     progress: 0,
     maxHp: template.hp * spawn.hpScale,
     hp: template.hp * spawn.hpScale,
-    speed: template.speed * (1 + Math.min(0.24, state.wave * 0.012)) * modifierTotals.speedMul,
+    speed: speed,
     reward: Math.round(template.reward * (1 + state.wave * 0.08) * activeMap.rewardScale * modifierTotals.rewardMul),
     radius: template.radius,
     color: template.color,
-    armor: template.armor || 0,
-    regen: template.regen || 0,
+    armor: armor,
+    regen: regen,
     jamRange: template.jamRange || 0,
     jamSlow: template.jamSlow || 1,
     split: template.split || 0,
@@ -447,7 +726,17 @@ function spawnEnemy(spawn) {
     dotUntil: 0,
     dotDamage: 0,
     hitFlash: 0,
+    elite: false,
   };
+
+  if (spawn.elite) {
+    enemy.maxHp = Math.round(enemy.maxHp * 1.5);
+    enemy.hp = enemy.maxHp;
+    enemy.speed *= 1.18;
+    enemy.reward = Math.round(enemy.reward * 1.6);
+    enemy.elite = true;
+  }
+
   state.enemies.push(enemy);
 }
 
@@ -489,6 +778,8 @@ function placeTower(col, row) {
     branch: null,
     pulse: 0,
     targetPriority: "first",
+    kills: 0,
+    totalDamage: 0,
   };
 
   state.credits -= type.cost;
@@ -589,6 +880,7 @@ function handleCanvasClick(event) {
   if (existing) {
     state.selectedTowerType = null;
     state.selectedTower = existing;
+    setHudTab("manage");
     buildTowerCards();
     updateSelectionPanel();
     showToast(`${towerTypes[existing.type].name} Lv.${existing.level}`);
@@ -597,6 +889,7 @@ function handleCanvasClick(event) {
 
   state.selectedTower = null;
   if (!state.selectedTowerType) {
+    setHudTab("towers");
     updateSelectionPanel();
     showToast("เลือกทาวเวอร์ก่อนวาง");
     return;
@@ -633,6 +926,9 @@ function checkWaveState() {
     state.score += bonus * 5;
     addLog(`Wave ${state.wave} จบ ได้โบนัส ${bonus} credits`);
     showToast(`Wave clear +${bonus}`);
+    updateMiniObjectives("wave_clear", {
+      noLeak: (state.analytics.leaksByWave[state.wave] || 0) === 0,
+    });
 
     if (!state.endlessMode && state.wave >= getWaveCap()) {
       endGame(true);
@@ -650,6 +946,17 @@ function endGame(won) {
   state.spawns = [];
   if (state.dailyMode && won && state.dailyKey) markDailyPlayed(state.dailyKey);
   evaluateRunAchievements(won);
+  
+  // Save tower mastery from this run
+  if (state.towers.length > 0) {
+    const mastery = state.towerMastery || getTowerMastery();
+    state.towers.forEach(tower => {
+      mastery[tower.type] = (mastery[tower.type] || 0) + (tower.kills || 0);
+    });
+    state.towerMastery = mastery;
+    saveTowerMastery(mastery);
+  }
+  
   saveBestScore(activeMap.id, state.score);
   saveBestStars(activeMap.id, stars);
   state.menuSelectedIndex = state.mapIndex;
@@ -692,6 +999,8 @@ function restart(message = "เริ่มใหม่แล้ว", options = 
   state.runStats = {
     usedCache: false,
   };
+  state.objectives.rerollUsed = false;
+  createRunObjectives();
   hidePauseModal();
   hideResultModal();
   state.menuSelectedIndex = state.mapIndex;

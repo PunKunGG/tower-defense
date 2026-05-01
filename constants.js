@@ -20,6 +20,7 @@ const ui = {
   menuLogoFallback: document.querySelector("#menuLogoFallback"),
   towerList: document.querySelector("#towerList"),
   wavePreview: document.querySelector("#wavePreview"),
+  objectivePanel: document.querySelector("#objectivePanel"),
   codexBtn: document.querySelector("#codexBtn"),
   pauseModal: document.querySelector("#pauseModal"),
   pauseKicker: document.querySelector("#pauseKicker"),
@@ -60,6 +61,7 @@ const ui = {
   hintDismissBtn: document.querySelector("#hintDismissBtn"),
   brandLogo: document.querySelector("#brandLogo"),
   brandLogoFallback: document.querySelector("#brandLogoFallback"),
+  hudTabs: document.querySelector("#hudTabs"),
   selectedTitle: document.querySelector("#selectedTitle"),
   selectedText: document.querySelector("#selectedText"),
   selectedPanel: document.querySelector("#selectedPanel"),
@@ -124,6 +126,39 @@ const RUN_MODIFIER_POOL = [
   },
 ];
 
+const MAP_AFFIX_POOL = [
+  {
+    id: "spark_surge",
+    name: "Spark Surge",
+    desc: "Spark enemies +25% speed",
+    apply: (state) => { state.runAffix = this; },
+  },
+  {
+    id: "cache_drain",
+    name: "Cache Drain",
+    desc: "Cache tower income -20%",
+    apply: (state) => { state.runAffix = this; },
+  },
+  {
+    id: "enemy_swarm",
+    name: "Enemy Swarm",
+    desc: "Each wave +2 enemies",
+    apply: (state) => { state.runAffix = this; },
+  },
+  {
+    id: "crystal_armor",
+    name: "Crystal Armor",
+    desc: "All enemies +3 armor",
+    apply: (state) => { state.runAffix = this; },
+  },
+  {
+    id: "regen_power",
+    name: "Regen Power",
+    desc: "Regen enemies +40% HP regen rate",
+    apply: (state) => { state.runAffix = this; },
+  },
+];
+
 const ACHIEVEMENTS = [
   {
     id: "core_guardian",
@@ -149,6 +184,11 @@ const ACHIEVEMENTS = [
     id: "endless_25",
     name: "Beyond Twenty",
     desc: "Reach wave 25 in Endless mode",
+  },
+  {
+    id: "maze_winner",
+    name: "Maze Runner",
+    desc: "Win on Maze Grid",
   },
 ];
 
@@ -306,6 +346,52 @@ const maps = [
         [13, 7],
         [13, 6],
         [13, 5],
+      ],
+    ],
+  },
+  {
+    id: "maze",
+    name: "Maze Grid",
+    difficulty: "Expert",
+    desc: "สี่เลน ซิกแซกคนละพื้นที่ รวมกันที่ Core ขวา — วาง tower ให้ครอบหลายเลนพร้อมกัน",
+    credits: 115,
+    lives: 12,
+    hpScale: 1.35,
+    countBonus: 8,
+    gapBonus: -120,
+    rewardScale: 0.88,
+    pathCells: [
+      // Lane 1 — top zigzag (rows 0-1)
+      [
+        [0, 0], [1, 0], [2, 0], [3, 0],
+        [3, 1], [4, 1], [5, 1], [6, 1],
+        [6, 0], [7, 0], [8, 0], [9, 0], [10, 0],
+        [10, 1], [11, 1], [12, 1], [13, 1],
+        [13, 2], [13, 3], [13, 4],
+      ],
+      // Lane 2 — upper-mid zigzag (rows 2-3)
+      [
+        [0, 3], [1, 3], [2, 3],
+        [2, 2], [3, 2], [4, 2], [5, 2],
+        [5, 3], [6, 3], [7, 3], [8, 3],
+        [8, 2], [9, 2], [10, 2], [11, 2],
+        [11, 3], [12, 3], [12, 4], [13, 4],
+      ],
+      // Lane 3 — lower-mid zigzag (rows 5-6)
+      [
+        [0, 5], [1, 5], [2, 5],
+        [2, 6], [3, 6], [4, 6], [5, 6],
+        [5, 5], [6, 5], [7, 5], [8, 5],
+        [8, 6], [9, 6], [10, 6], [11, 6],
+        [11, 5], [12, 5], [13, 5], [13, 4],
+      ],
+      // Lane 4 — bottom zigzag (rows 7-8)
+      [
+        [0, 8], [1, 8], [2, 8], [3, 8],
+        [3, 7], [4, 7], [5, 7], [6, 7],
+        [6, 8], [7, 8], [8, 8], [9, 8], [10, 8],
+        [10, 7], [11, 7], [12, 7], [13, 7],
+        [13, 6], [13, 5], [13, 4],
       ],
     ],
   },

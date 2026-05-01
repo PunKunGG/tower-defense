@@ -22,6 +22,10 @@ function achievementsKey() {
   return "byte-defense.achievements";
 }
 
+function towerMasteryKey() {
+  return "byte-defense.tower-mastery";
+}
+
 function buildPresetKey(mapId) {
   return `byte-defense.build.${mapId}`;
 }
@@ -130,6 +134,15 @@ function getSavedLoadout() {
 
 function saveLoadout(loadout) {
   return setJson(loadoutKey(), loadout);
+}
+
+function getTowerMastery() {
+  const defaults = { firewall: 0, patch: 0, cryo: 0, cache: 0 };
+  return getJson(towerMasteryKey(), defaults);
+}
+
+function saveTowerMastery(mastery) {
+  setJson(towerMasteryKey(), mastery);
 }
 
 function markDailyPlayed(dayKey) {

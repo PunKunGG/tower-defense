@@ -31,6 +31,7 @@ body {
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
+  overflow-x: hidden;
 }
 
 button {
@@ -64,8 +65,9 @@ button:disabled {
   inset: 0;
   z-index: 20;
   display: grid;
-  place-items: center;
+  place-items: start center;
   padding: 24px;
+  overflow-y: auto;
   background:
     linear-gradient(90deg, rgba(7, 16, 19, 0.94), rgba(7, 16, 19, 0.72)),
     radial-gradient(circle at 70% 28%, rgba(70, 167, 255, 0.2), transparent 24rem);
@@ -77,11 +79,30 @@ button:disabled {
 
 .menu-panel {
   width: min(760px, 100%);
+  margin: auto 0;
   padding: 24px;
   border: 1px solid rgba(93, 156, 165, 0.36);
   border-radius: 8px;
   background: rgba(13, 24, 29, 0.94);
   box-shadow: 0 28px 90px var(--shadow);
+}
+
+.hud-tabs {
+  display: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.hud-tabs button {
+  min-height: 36px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.hud-tabs button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: #15342f;
 }
 
 .menu-brand {
@@ -294,6 +315,7 @@ canvas {
   aspect-ratio: 14 / 9;
   display: block;
   image-rendering: auto;
+  touch-action: none;
 }
 
 .toast {
@@ -444,6 +466,7 @@ h1 {
 
 .stats div,
 .wave-preview,
+.objective-panel,
 .selected,
 .log {
   border: 1px solid rgba(93, 156, 165, 0.24);
@@ -494,6 +517,94 @@ h1 {
   margin-top: 2px;
 }
 
+.objective-panel {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-height: 82px;
+  padding: 10px 12px;
+  overflow: hidden;
+}
+
+.objective-panel h3 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.objective-panel strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.objective-panel span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.objective-panel .objective-progress {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.objective-panel .objective-meta {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.objective-panel .objective-reward,
+.objective-panel .objective-completed {
+  max-width: 100%;
+}
+
+.objective-panel.rare-active {
+  border-color: rgba(255, 209, 102, 0.65);
+  background: linear-gradient(160deg, rgba(53, 41, 18, 0.88), rgba(34, 26, 13, 0.84));
+}
+
+.objective-panel.rare-active h3 {
+  color: var(--warning);
+}
+
+.objective-panel.legendary-active {
+  border-color: rgba(140, 232, 255, 0.72);
+  background: linear-gradient(160deg, rgba(15, 47, 60, 0.9), rgba(10, 28, 38, 0.88));
+  box-shadow: inset 0 0 0 1px rgba(140, 232, 255, 0.2);
+}
+
+.objective-panel.legendary-active h3 {
+  color: #8ce8ff;
+}
+
+.objective-reroll {
+  margin: 4px 0 0;
+  padding: 6px 8px;
+  font-size: 12px;
+  height: auto;
+  min-height: 34px;
+  background: rgba(55, 227, 162, 0.15);
+  border-color: rgba(55, 227, 162, 0.35);
+  color: var(--accent);
+}
+
+.objective-reroll:hover:not(:disabled) {
+  background: rgba(55, 227, 162, 0.25);
+  border-color: rgba(55, 227, 162, 0.55);
+}
+
+.objective-reroll:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .tower-list {
   display: grid;
   grid-template-columns: 1fr;
@@ -541,6 +652,24 @@ h1 {
 .tower-icon-key {
   position: relative;
   z-index: 1;
+}
+
+.tower-mastery {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: linear-gradient(135deg, #ffd166, #ff8c00);
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 900;
+  color: #000;
+  z-index: 2;
+  box-shadow: 0 0 6px rgba(255, 128, 0, 0.6);
 }
 
 .tower h2 {
@@ -1025,6 +1154,7 @@ h1 {
 
   .shell {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
     min-height: 0;
   }
 
@@ -1033,8 +1163,13 @@ h1 {
     min-height: 0;
   }
 
+  .playfield {
+    aspect-ratio: 14 / 9;
+  }
+
   canvas {
     width: 100%;
+    height: auto;
     max-height: none;
   }
 
@@ -1043,6 +1178,12 @@ h1 {
     grid-template-columns: 1fr;
     max-height: none;
     overflow-y: visible;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .tower-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .codex-content {
@@ -1057,6 +1198,13 @@ h1 {
 @media (max-width: 620px) {
   .menu-screen {
     padding: 8px;
+  }
+
+  .menu-screen::before,
+  .menu-screen::after {
+    content: "";
+    display: block;
+    height: 4px;
   }
 
   .menu-panel {
@@ -1099,10 +1247,40 @@ h1 {
 
   .shell {
     padding: 8px;
+    gap: 8px;
   }
 
   .stats {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .hud-tabs {
+    display: grid;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    padding-bottom: 2px;
+    background: rgba(13, 24, 29, 0.92);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+
+  .hud-section {
+    display: none;
+  }
+
+  .hud-section.is-active {
+    display: grid;
+  }
+
+  .selected.hud-section.is-active,
+  .log.hud-section.is-active {
+    display: flex;
+  }
+
+  .codex-open.hud-section.is-active {
+    display: block;
   }
 
   .stats div {
@@ -1117,6 +1295,47 @@ h1 {
   .tower {
     grid-template-columns: 36px 1fr auto;
     min-height: 62px;
+  }
+
+  .tower-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+    padding-bottom: 0;
+  }
+
+  .wave-preview {
+    min-height: 88px;
+    padding: 10px;
+  }
+
+  .objective-panel {
+    min-height: 72px;
+    padding: 9px 10px;
+  }
+
+  .selected {
+    min-height: 0;
+    padding: 10px;
+  }
+
+  .selected h2 {
+    font-size: 16px;
+  }
+
+  .selected p {
+    font-size: 13px;
+  }
+
+  .controls {
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    padding-top: 6px;
+    background: linear-gradient(180deg, rgba(13, 24, 29, 0), rgba(13, 24, 29, 0.96) 34%);
+  }
+
+  .brand p {
+    display: none;
   }
 
   .tower-icon {

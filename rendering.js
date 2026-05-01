@@ -176,6 +176,7 @@ function fireProjectile(tower, target, stats) {
     y: tower.y,
     target,
     towerType: tower.type,
+    towerId: tower.id,
     color: type.color,
     speed: tower.type === "patch" ? 360 : 520,
     damage: stats.damage,
@@ -260,6 +261,10 @@ function damageEnemy(enemy, amount, projectile = null) {
   if (projectile?.towerType && state.analytics.towerDamage[projectile.towerType] !== undefined) {
     state.analytics.towerDamage[projectile.towerType] += effectiveDamage;
   }
+  if (projectile?.towerId) {
+    const sourceTower = state.towers.find((t) => t.id === projectile.towerId);
+    if (sourceTower) sourceTower.totalDamage = (sourceTower.totalDamage || 0) + effectiveDamage;
+  }
 
   enemy.hp -= finalDamage;
   enemy.hitFlash = 120;
@@ -272,8 +277,16 @@ function damageEnemy(enemy, amount, projectile = null) {
     state.analytics.towerKills[projectile.towerType] =
       (state.analytics.towerKills[projectile.towerType] || 0) + 1;
   }
+  if (projectile?.towerId) {
+    const sourceTower = state.towers.find((t) => t.id === projectile.towerId);
+    if (sourceTower) sourceTower.kills = (sourceTower.kills || 0) + 1;
+  }
 
   spawnSplitEnemies(enemy);
+  updateMiniObjectives("enemy_kill", {
+    enemyType: enemy.type,
+    elite: !!enemy.elite,
+  });
 
   state.credits += enemy.reward;
   state.score += enemy.reward * 10;
@@ -285,7 +298,8 @@ function damageEnemy(enemy, amount, projectile = null) {
     life: 760,
   });
   popImpactRing(enemy.x, enemy.y, enemy.color, enemy.type === "boss" ? 34 : 20, enemy.type === "boss" ? 360 : 240);
-  popParticles(enemy.x, enemy.y, enemy.color, enemy.type === "boss" ? 34 : 14);
+  popParticles(enemy.x, enemy.y, enemy.color, enemy.type === "boss" ? 34 : enemy.elite ? 24 : 14);
+  if (enemy.elite) popParticles(enemy.x, enemy.y, "#ffd23c", 12);
   addScreenShake(enemy.type === "boss" ? 14 : projectile?.splash ? 7 : 4);
   updateHud();
 }
@@ -608,6 +622,21 @@ function drawEnemies() {
 
     ctx.save();
     ctx.translate(enemy.x, enemy.y);
+
+    // Elite outer glow ring
+    if (enemy.elite) {
+      const t = (performance.now() / 400) % (Math.PI * 2);
+      const glow = 0.55 + Math.sin(t) * 0.25;
+      ctx.strokeStyle = `rgba(255, 210, 60, ${glow})`;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = "#ffd23c";
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(0, 0, enemy.radius + 13, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
     ctx.fillStyle = hexToRgba(enemy.color, 0.2);
     ctx.beginPath();
     ctx.arc(0, 0, enemy.radius + 8, 0, Math.PI * 2);
@@ -692,6 +721,15 @@ function drawEnemies() {
     ctx.fillStyle = hpRatio > 0.45 ? "#37e3a2" : "#ff6b6b";
     roundRect(-24, -enemy.radius - 16, 48 * hpRatio, 6, 3);
     ctx.fill();
+
+    // Elite crown marker above health bar
+    if (enemy.elite) {
+      ctx.fillStyle = "#ffd23c";
+      ctx.font = "bold 9px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText("★", 0, -enemy.radius - 20);
+    }
+
     ctx.restore();
   });
 }

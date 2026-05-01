@@ -161,6 +161,27 @@ ui.targetingActions.addEventListener("click", (event) => {
 });
 ui.saveBuildBtn.addEventListener("click", saveCurrentBuildPreset);
 ui.loadBuildBtn.addEventListener("click", loadCurrentBuildPreset);
+const objectiveRerollBtn = document.querySelector("#objectiveRerollBtn");
+if (objectiveRerollBtn) {
+  objectiveRerollBtn.addEventListener("click", () => {
+    if (!state.objectives.rerollUsed && state.objectives.active) {
+      const current = state.objectives.active;
+      state.objectives.queue.unshift(current);
+      state.objectives.active = null;
+      state.objectives.rerollUsed = true;
+      activateNextObjective();
+      updateHud();
+      showToast(`Reroll used: ${current.label}`);
+    }
+  });
+}
+if (ui.hudTabs) {
+  ui.hudTabs.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-hud-tab]");
+    if (!button) return;
+    setHudTab(button.dataset.hudTab);
+  });
+}
 
 // Event listeners - Keyboard
 window.addEventListener("keydown", (event) => {
@@ -269,6 +290,14 @@ state = {
   runStats: {
     usedCache: false,
   },
+  objectives: {
+    total: 3,
+    queue: [],
+    active: null,
+    completed: [],
+    noLeakStreak: 0,
+    rerollUsed: false,
+  },
   selectedTowerType: initialLoadout[0] || "firewall",
   selectedTower: null,
   towers: [],
@@ -295,6 +324,8 @@ state = {
   mouse: { x: -1000, y: -1000, col: -1, row: -1 },
   messageTimer: 0,
   analytics: initAnalytics(),
+  towerMastery: getTowerMastery(),
+  runAffix: null,
 };
 
 buildMenuLevelCards();
@@ -306,4 +337,8 @@ updateMenuMeta();
 addLog(`${activeMap.name}: ${activeMap.desc}`);
 wireOptionalImage(ui.menuLogo, ui.menuLogoFallback);
 wireOptionalImage(ui.brandLogo, ui.brandLogoFallback);
+setHudTab(state.hudTab || "overview");
+window.addEventListener("resize", () => {
+  setHudTab(state.hudTab || "overview");
+});
 requestAnimationFrame(gameLoop);
