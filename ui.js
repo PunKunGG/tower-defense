@@ -332,14 +332,25 @@ function buildTowerCards() {
 
   Object.values(towerTypes).forEach((tower) => {
     if (!state.loadout.includes(tower.id)) return;
-    const mastery = state.towerMastery?.[tower.id] || 0;
+    const mastery = getEffectiveTowerMastery(tower.id);
     const masteryLevel = mastery < 50 ? 0 : mastery < 200 ? 1 : mastery < 500 ? 2 : 3;
-    const masteryBadge = masteryLevel > 0 ? `<span class="tower-mastery" title="Mastery Lv.${masteryLevel}">✦${masteryLevel}</span>` : "";
+    const masteryBadge = masteryLevel > 0 ? `<span class="tower-mastery" title="Type Mastery Lv.${masteryLevel}">✦${masteryLevel}</span>` : "";
     const button = document.createElement("button");
     button.className = "tower";
     button.type = "button";
     button.setAttribute("aria-pressed", String(state.selectedTowerType === tower.id));
     button.dataset.tower = tower.id;
+    const nextMasteryThresholds = [50, 200, 500];
+    const nextThreshold = nextMasteryThresholds[masteryLevel] || null;
+    const prevThreshold = masteryLevel === 0 ? 0 : nextMasteryThresholds[masteryLevel - 1];
+    const masteryBarHtml = nextThreshold !== null
+      ? (() => {
+          const pct = Math.round(((mastery - prevThreshold) / (nextThreshold - prevThreshold)) * 100);
+          return `<div class="mastery-bar" title="Type Mastery Lv.${masteryLevel} → ${mastery}/${nextThreshold} kills to Lv.${masteryLevel + 1}">
+            <div class="mastery-bar-fill" style="width:${pct}%"></div>
+          </div>`;
+        })()
+      : `<div class="mastery-bar mastery-bar-max" title="Type Mastery Lv.3 MAX"><div class="mastery-bar-fill" style="width:100%"></div></div>`;
     button.innerHTML = `
       <span class="tower-icon" style="background:${tower.color}">
         <img class="tower-icon-image" src="${tower.image}" alt="" />
@@ -349,6 +360,7 @@ function buildTowerCards() {
       <span>
         <h2>${tower.name}</h2>
         <p>${tower.desc}</p>
+        ${masteryBarHtml}
       </span>
       <span class="tower-cost">${tower.cost}</span>
     `;
@@ -455,6 +467,11 @@ function getWaveSummary(wave) {
   };
 }
 
+function affixBadgeHtml() {
+  if (!state.runAffix) return "";
+  return `<span class="affix-badge"><span class="affix-badge-icon">⚡</span>${state.runAffix.name}</span>`;
+}
+
 function updateWavePreview() {
   if (state.gameOver) {
     ui.wavePreview.innerHTML = `
@@ -468,6 +485,7 @@ function updateWavePreview() {
     ui.wavePreview.innerHTML = `
       <h2>Wave ${state.wave} กำลังบุก</h2>
       <p>เหลือศัตรู ${state.enemies.length + state.spawns.length} ตัว / ${paths.length} lane</p>
+      <div class="wave-preview-badges">${affixBadgeHtml()}</div>
     `;
     return;
   }
@@ -490,6 +508,7 @@ function updateWavePreview() {
     <p>${summary.enemies.join(" / ")}</p>
     <span>${summary.total} enemies / ${summary.lanes} lane${summary.lanes > 1 ? "s" : ""}</span>
     ${modifierLine}
+    <div class="wave-preview-badges">${affixBadgeHtml()}</div>
   `;
 }
 
@@ -507,9 +526,14 @@ function updateSelectionPanel() {
     const type = towerTypes[selected.type];
     const stats = towerStats(selected);
     const branch = getTowerBranch(selected);
-    const mastery = state.towerMastery?.[selected.type] || 0;
+    const mastery = getEffectiveTowerMastery(selected.type);
     const masteryLevel = mastery < 50 ? 0 : mastery < 200 ? 1 : mastery < 500 ? 2 : 3;
     const masteryBonus = masteryLevel > 0 ? ` +${masteryLevel}% Mastery` : "";
+    const nextMasteryThresholds = [50, 200, 500];
+    const nextThreshold = nextMasteryThresholds[masteryLevel];
+    const masteryLine = masteryLevel >= 3
+      ? "Type Mastery Lv.3 MAX"
+      : `Type Mastery Lv.${masteryLevel} · ${mastery}/${nextThreshold} kills → Lv.${masteryLevel + 1}`;
     const upgradeText = selected.level >= 3 ? "เต็มเลเวลแล้ว" : `อัปเกรด ${upgradeCost(selected)} credits`;
     const branchText = branch ? ` / ${branch.name}` : "";
     const kills = selected.kills || 0;
@@ -519,7 +543,7 @@ function updateSelectionPanel() {
       : `${upgradeText}${branchText}. Damage ${Math.round(stats.damage)}${masteryBonus}, Range ${Math.round(stats.range)}, ขายได้ ${sellValue(selected)}.`;
     const combatLine = selected.type !== "cache" ? ` Kills ${formatNumber(kills)} / Total DMG ${formatNumber(totalDmg)}` : "";
     ui.selectedTitle.textContent = `${type.name} Lv.${selected.level}`;
-    ui.selectedText.textContent = statsLine + combatLine;
+    ui.selectedText.innerHTML = `${statsLine}${combatLine}<br><span class="selected-mastery-line">${masteryLine}</span>`;
 
     if (selected.level === 2 && !selected.branch) {
       const branches = towerBranches[selected.type] || [];

@@ -454,7 +454,7 @@ function setSelectedTowerPriority(priority) {
 function towerStats(tower) {
   const type = towerTypes[tower.type];
   const levelScale = 1 + (tower.level - 1) * 0.42;
-  const mastery = state.towerMastery?.[tower.type] || 0;
+  const mastery = getEffectiveTowerMastery(tower.type);
   const masteryLevel = mastery < 50 ? 0 : mastery < 200 ? 1 : mastery < 500 ? 2 : 3;
   const masteryBonus = 1 + masteryLevel * 0.01;
   
@@ -947,15 +947,13 @@ function endGame(won) {
   if (state.dailyMode && won && state.dailyKey) markDailyPlayed(state.dailyKey);
   evaluateRunAchievements(won);
   
-  // Save tower mastery from this run
-  if (state.towers.length > 0) {
-    const mastery = state.towerMastery || getTowerMastery();
-    state.towers.forEach(tower => {
-      mastery[tower.type] = (mastery[tower.type] || 0) + (tower.kills || 0);
-    });
-    state.towerMastery = mastery;
-    saveTowerMastery(mastery);
-  }
+  // Save mastery using run kill totals so sold towers are counted too.
+  const mastery = { ...(state.towerMastery || getTowerMastery()) };
+  Object.keys(state.analytics.towerKills || {}).forEach((type) => {
+    mastery[type] = (mastery[type] || 0) + (state.analytics.towerKills[type] || 0);
+  });
+  state.towerMastery = mastery;
+  saveTowerMastery(mastery);
   
   saveBestScore(activeMap.id, state.score);
   saveBestStars(activeMap.id, stars);

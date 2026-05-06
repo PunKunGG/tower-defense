@@ -276,6 +276,10 @@ function damageEnemy(enemy, amount, projectile = null) {
   if (projectile?.towerType) {
     state.analytics.towerKills[projectile.towerType] =
       (state.analytics.towerKills[projectile.towerType] || 0) + 1;
+
+    // Mastery bar/number should update immediately without requiring reselect.
+    buildTowerCards();
+    updateSelectionPanel();
   }
   if (projectile?.towerId) {
     const sourceTower = state.towers.find((t) => t.id === projectile.towerId);
