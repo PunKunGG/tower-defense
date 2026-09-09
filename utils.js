@@ -145,6 +145,12 @@ function saveTowerMastery(mastery) {
   setJson(towerMasteryKey(), mastery);
 }
 
+function getEffectiveTowerMastery(type) {
+  const stored = state?.towerMastery?.[type] || 0;
+  const runKills = state?.analytics?.towerKills?.[type] || 0;
+  return stored + runKills;
+}
+
 function markDailyPlayed(dayKey) {
   try {
     localStorage.setItem(dailyPlayedKey(dayKey), "1");
